@@ -1,5 +1,5 @@
 /*
- * Attrition Command
+ * Attrition Command Interface
  */
 
 using System;
@@ -7,26 +7,26 @@ using System.Reflection;
 using System.Linq;
 using System.Diagnostics;
 
-public class ACMain
+public class ACIMain
 {
     public static void Main(string[] args) 
     {
-        ACService svc = new ACService();
+        ACIService svc = new ACIService();
         svc.Exec(args);
 
         // Create object by name.
-        // Type type = Type.getType("ACInterface");
+        // Type type = Type.getType("ACIInterface");
         // object o = Activator.CreateInstance(type);
         // MethodInfo method = o.GetType().GetMethod("Help");
         // method.Invoke(o, new Object[]{ args });
     }
 }
 
-public class ACService
+public class ACIService
 {
     public void Exec(string[] args)
     {
-        ACInterface cmd = new ACInterface();
+        ACIInterface cmd = new ACIInterface();
         if(args.Length > 0) 
         {
             MethodInfo method = cmd.GetType().GetMethod(KebabToPascal(args[0]));
@@ -72,9 +72,9 @@ public class ACService
 }
 
 // Add commands here.
-public class ACInterface
+public class ACIInterface
 {
-    private ACCommandCore cmdCore = new ACCommandCore();
+    private ACICommandCore cmdCore = new ACICommandCore();
 
     public void Help(string[] args)
     {
@@ -87,7 +87,7 @@ public class ACInterface
     }
 }
 
-public class ACCommandCore
+public class ACICommandCore
 {
     public void Help(string[] args)
     {
