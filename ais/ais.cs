@@ -311,6 +311,11 @@ public class AISService
 
         string input = InputWithVimUTF8(t);
 
+        if(null == input)
+        {
+            return;
+        }
+
         Task parsed = Task.ParseDescriptor(input, true);
         t.Name = parsed.Name;
         t.Status = parsed.Status;
@@ -358,6 +363,12 @@ public class AISService
         Task tgt = Task.SelectById(db, Int32.Parse(args[1]));
 
         string input = InputWithVimUTF8(tgt);
+
+        if(null == input)
+        {
+            return;
+        }
+
         List<string> lines = input.Split(
                 new string[] { "\r\n" }, 
                 StringSplitOptions.None).ToList();
@@ -436,6 +447,11 @@ public class AISService
         }
 
         process.WaitForExit();
+
+        if(process.ExitCode == 1)
+        {
+            return null;
+        }
 
         return File.ReadAllText(tmpTxtPath, Encoding.GetEncoding(65001));
     }
