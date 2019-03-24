@@ -299,6 +299,20 @@ public class AISService
         return sorted;
     }
 
+    private List<Task> OrderTaskById(List<Task> list)
+    {
+        List<Task> sorted = new List<Task>();
+
+        foreach(Task t in db.Task)
+        {
+            sorted.Add(t);
+        }
+
+        sorted.Sort((a,b) => a.Id - b.Id);
+
+        return sorted;
+    }
+
     public void List(string[] args)
     {
         List<Task> sorted = OrderTaskByStatus(db.Task);
@@ -314,7 +328,9 @@ public class AISService
 
     public void ListAll(string[] args)
     {
-        foreach(Task t in db.Task)
+        List<Task> sorted = OrderTaskById(db.Task);
+
+        foreach(Task t in sorted)
         {
             ShowSub(t);
         }
