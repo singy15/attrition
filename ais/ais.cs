@@ -104,6 +104,7 @@ public class AISInterface
     public void List(string[] args) { svc.List(args); }
     public void Ls(string[] args) { svc.List(args); }
     public void ListAll(string[] args) { svc.ListAll(args); }
+    public void LsAll(string[] args) { svc.ListAll(args); }
     public void Show(string[] args) { svc.Show(args); }
     public void Add(string[] args) { svc.Add(args); }
     public void Del(string[] args) { svc.Del(args); }
