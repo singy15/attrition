@@ -257,7 +257,7 @@ public class AISService
     {
         Console.WriteLine(
                 "#" + t.Id + " " 
-                + t.Status + " " 
+                + Task.StatusCodeToName(t.Status) + " " 
                 + ((t.IsArchived)? "[A] " : "") 
                 + t.Name);
         if(t.Desc != "")
@@ -288,7 +288,7 @@ public class AISService
             sorted.Add(t);
         }
 
-        sorted.Sort((a,b) => a.OrdStatus - b.OrdStatus);
+        sorted.Sort((a,b) => String.Compare(a.Status,b.Status));
 
         return sorted;
     }
@@ -319,7 +319,7 @@ public class AISService
         Task t = new Task();
         
         t.Id = db.SequenceTask.GetSeq();
-        t.Status = "*";
+        t.Status = Task.StatusNameToCode("*");
         t.Name = "{Name}";
         t.Desc = "{Desc}";
 
@@ -488,32 +488,6 @@ public class Task
     public int Id { get; set; }
     public string Name { get; set; }
     public string Status { get; set; }
-    public int OrdStatus {
-        get {
-            if(Status == ">")
-            {
-                return 0;
-            }
-            if(Status == "*")
-            {
-                return 1;
-            }
-            if(Status == "?")
-            {
-                return 2;
-            }
-            if(Status == "x")
-            {
-                return 3;
-            }
-            if(Status == "-")
-            {
-                return 4;
-            }
-
-            return 0;
-        }
-    }
     public string Desc { get; set; }
     public bool IsArchived { get; set; }
     public string PlDelivSt { get; set; }
@@ -523,6 +497,56 @@ public class Task
     public double PlWL { get; set; }
     public double AcWL { get; set; }
 
+    public static string StatusNameToCode(string name) {
+        if(name == ">")
+        {
+            return "0";
+        }
+        if(name == "*")
+        {
+            return "1";
+        }
+        if(name == "?")
+        {
+            return "2";
+        }
+        if(name == "x")
+        {
+            return "3";
+        }
+        if(name == "-")
+        {
+            return "4";
+        }
+
+        return "0";
+    }
+
+    public static string StatusCodeToName(string code) {
+        if(code == "0")
+        {
+            return ">";
+        }
+        if(code == "1")
+        {
+            return "*";
+        }
+        if(code == "2")
+        {
+            return "?";
+        }
+        if(code == "3")
+        {
+            return "x";
+        }
+        if(code == "4")
+        {
+            return "-";
+        }
+
+        return " ";
+    }
+
     public string GetDescriptor() 
     {
         return String.Format(
@@ -531,7 +555,7 @@ public class Task
                 + "{4}",
                 AIS.NEWLINE,
                 Id,
-                Status,
+                Task.StatusCodeToName(Status),
                 Name,
                 Desc);
     }
@@ -551,7 +575,7 @@ public class Task
         Match m = mc[0];
 
         t.Id = Int32.Parse(m.Groups[1].Value);
-        t.Status = m.Groups[2].Value;
+        t.Status = Task.StatusNameToCode(m.Groups[2].Value);
         t.Name = m.Groups[3].Value;
 
         if(lines.Count() > 3) 
