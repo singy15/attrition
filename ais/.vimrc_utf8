@@ -1,0 +1,32 @@
+
+" activate backspace
+set backspace=indent,eol,start
+
+" no backuo,swap,undo
+set noswapfile
+set noundofile
+set nobackup
+
+" tab
+set tabstop=2
+set shiftwidth=2
+set expandtab
+
+" nowrap
+set nowrap
+
+" encoding
+set encoding=utf8
+set fileencoding=utf8
+" set enc=sjis
+" set fenc=sjis
+
+
+set number
+
+set nocompatible
+
+" visual bell
+set visualbell
+set errorbells
+
