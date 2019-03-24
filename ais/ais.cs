@@ -19,6 +19,7 @@ using System.Diagnostics;
 using System.Runtime.Serialization.Json;
 using System.Runtime;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.IO;
 using System.Collections.Generic;
 
@@ -34,6 +35,8 @@ public class AISMain
 
 public class AIS
 {
+    public static string NEWLINE = "\r\n";
+
     private AISInterface ifs;
     private AISService svc;
 
@@ -126,6 +129,11 @@ public class AISInterface
         svc.ListAll(args);
     }
 
+    public void Show(string[] args)
+    {
+        svc.Show(args);
+    }
+
     public void Add(string[] args)
     {
         svc.Add(args);
@@ -144,6 +152,11 @@ public class AISInterface
     public void Mod(string[] args)
     {
         svc.Mod(args);
+    }
+
+    public void ModStatus(string[] args)
+    {
+        svc.ModStatus(args);
     }
 
     public void Test(string[] args)
@@ -169,9 +182,15 @@ public class AISService
 
     public void Test(string[] args)
     {
-        CreateDB();
-        InsertTestData();
-        DumpDB();
+        // CreateDB();
+        // InsertTestData();
+        // DumpDB();
+
+        Task t = Task.SelectById(db, Int32.Parse(args[1]));
+        Console.WriteLine(t.GetDescriptor());
+
+        Task parsed = Task.ParseDescriptor(t.GetDescriptor(), false);
+        Console.WriteLine(parsed.GetDescriptor());
     }
 
     public void CreateDB()
@@ -257,6 +276,9 @@ public class AISService
 
     public void Show(string[] args)
     {
+        CheckNumArgumentsEqual(args, 2);
+        Task t = Task.SelectById(db, Int32.Parse(args[1]));
+        Console.WriteLine(t.GetDescriptor());
     }
 
     public void List(string[] args)
@@ -283,31 +305,20 @@ public class AISService
         Task t = new Task();
         
         t.Id = db.SequenceTask.GetSeq();
+        t.Status = "*";
         t.Name = "{Name}";
         t.Desc = "{Desc}";
-        t.Status = "*";
 
-        List<string> lines = InputWithVimUTF8(t).Split(new string[] { "\r\n" }, 
-                StringSplitOptions.None).ToList();
+        string input = InputWithVimUTF8(t);
 
-        t.Name = lines[0];
-
-        if(lines.Count() > 3) 
-        {
-            // Vim inserts CRLF in tail of last line.
-            lines.RemoveAt(lines.Count - 1);
-            t.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
-        } else 
-        {
-            t.Desc = "";
-        }
-
-        // Console.WriteLine(t.Name);
-        // Console.WriteLine();
-        // Console.WriteLine(t.Desc);
-        ShowSub(t);
+        Task parsed = Task.ParseDescriptor(input, true);
+        t.Name = parsed.Name;
+        t.Status = parsed.Status;
+        t.Desc = parsed.Desc;
 
         db.Task.Add(t);
+
+        ShowSub(t);
     }
 
     public void Del(string[] args)
@@ -346,35 +357,39 @@ public class AISService
 
         Task tgt = Task.SelectById(db, Int32.Parse(args[1]));
 
-        List<string> lines = InputWithVimUTF8(tgt).Split(
+        string input = InputWithVimUTF8(tgt);
+        List<string> lines = input.Split(
                 new string[] { "\r\n" }, 
                 StringSplitOptions.None).ToList();
 
-        tgt.Name = lines[0];
-
-        if(lines.Count() > 3) 
-        {
-            // Vim inserts CRLF in tail of last line.
-            lines.RemoveAt(lines.Count - 1);
-            tgt.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
-        } else 
-        {
-            tgt.Desc = "";
-        }
+        Task modified = Task.ParseDescriptor(input, true);
+        tgt.Name = modified.Name;
+        tgt.Status = modified.Status;
+        tgt.Desc = modified.Desc;
 
         ShowSub(tgt);
+    }
+
+    public void ModStatus(string[] args)
+    {
+        CheckNumArgumentsEqual(args, 3);
+
+        Task t = Task.SelectById(db, Int32.Parse(args[1]));
+        t.Status = args[2];
     }
 
     private void CheckNumArgumentsEqual(string[] args, int num)
     {
         if(args.Count() != num) {
-            throw new Exception("Invalid number of arguments");
+            throw new Exception("Invalid number of arguments :"
+                    + " Expect " + num.ToString()
+                    + " Actual " + args.Count());
         }
     }
 
     private void CheckNumArgumentsMin(string[] args, int min)
     {
-        if(args.Count() <= min) {
+        if(!(args.Count() >= min)) {
             throw new Exception("Invalid number of arguments");
         }
     }
@@ -454,12 +469,48 @@ public class Task
 
     public string GetDescriptor() 
     {
-        string NEWLINE = "\r\n";
-        string d = "";
-        d += Name + NEWLINE;
-        d += NEWLINE;
-        d += Desc;
-        return d;
+        return String.Format(
+                "#{1} {2} {3}{0}"
+                + "{0}"
+                + "{4}",
+                AIS.NEWLINE,
+                Id,
+                Status,
+                Name,
+                Desc);
+    }
+    
+    public static Task ParseDescriptor(string descriptor, bool trimLast)
+    {
+        Task t = new Task();
+
+        List<string> lines = descriptor.Split(
+                new string[] { "\r\n" }, 
+                StringSplitOptions.None).ToList();
+
+        Regex regex = new Regex( @"\#(.+?) (.+?) ([\s\S]+)$", 
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        MatchCollection mc = regex.Matches(lines[0]);
+        Match m = mc[0];
+
+        t.Id = Int32.Parse(m.Groups[1].Value);
+        t.Status = m.Groups[2].Value;
+        t.Name = m.Groups[3].Value;
+
+        if(lines.Count() > 3) 
+        {
+            if(trimLast)
+            {
+                lines.RemoveAt(lines.Count - 1);
+            }
+            t.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
+        } else 
+        {
+            t.Desc = "";
+        }
+
+        return t;
     }
 
     public static Task SelectById(AISDB db, int id)
