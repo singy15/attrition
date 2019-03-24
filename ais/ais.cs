@@ -110,6 +110,7 @@ public class AISInterface
     public void Del(string[] args) { svc.Del(args); }
     public void Archive(string[] args) { svc.Archive(args); }
     public void Mod(string[] args) { svc.Mod(args); }
+    public void Search(string[] args) { svc.Search(args); }
     public void Test(string[] args) { svc.Test(args); }
 }
 
@@ -375,6 +376,18 @@ public class AISService
 
         Task t = Task.SelectById(db, Int32.Parse(args[1]));
         t.Status = args[2];
+    }
+
+    public void Search(string[] args)
+    {
+        CheckNumArgumentsEqual(args, 2);
+
+        db.Task
+            .Where(x => 
+                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*", 
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline))
+            .ToList()
+            .ForEach(x => ShowSub(x));
     }
 
     private void CheckNumArgumentsEqual(string[] args, int num)
