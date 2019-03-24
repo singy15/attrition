@@ -312,78 +312,70 @@ public class AISService
 
     public void Del(string[] args)
     {
-        if(args.Count() > 1) 
-        {
-            foreach(string arg in args.Skip(1).ToArray())
-            {
-                Task tgt = Task.SelectById(db, Int32.Parse(arg));
+        CheckNumArgumentsMin(args, 2);
 
-                if(tgt != null)
-                {
-                    db.Task.Remove(tgt);
-                }
-            }
-        }
-        else 
+        foreach(string arg in args.Skip(1).ToArray())
         {
-            throw new Exception("invalid argument");
+            Task tgt = Task.SelectById(db, Int32.Parse(arg));
+
+            if(tgt != null)
+            {
+                db.Task.Remove(tgt);
+            }
         }
     }
 
     public void Archive(string[] args)
     {
-        if(args.Count() > 1) 
-        {
-            foreach(string arg in args.Skip(1).ToArray())
-            {
-                Task tgt = Task.SelectById(db, Int32.Parse(arg));
+        CheckNumArgumentsMin(args, 2);
 
-                if(tgt != null)
-                {
-                    tgt.IsArchived = !tgt.IsArchived;
-                }
-            }
-        }
-        else 
+        foreach(string arg in args.Skip(1).ToArray())
         {
-            throw new Exception("invalid argument");
+            Task tgt = Task.SelectById(db, Int32.Parse(arg));
+
+            if(tgt != null)
+            {
+                tgt.IsArchived = !tgt.IsArchived;
+            }
         }
     }
 
     public void Mod(string[] args)
     {
-        if(args.Count() == 2) 
+        CheckNumArgumentsEqual(args, 2);
+
+        Task tgt = Task.SelectById(db, Int32.Parse(args[1]));
+
+        List<string> lines = InputWithVimUTF8(tgt).Split(
+                new string[] { "\r\n" }, 
+                StringSplitOptions.None).ToList();
+
+        tgt.Name = lines[0];
+
+        if(lines.Count() > 3) 
         {
-            Task tgt = Task.SelectById(db, Int32.Parse(args[1]));
-
-            if(tgt != null)
-            {
-                List<string> lines = InputWithVimUTF8(tgt).Split(
-                        new string[] { "\r\n" }, 
-                        StringSplitOptions.None).ToList();
-
-                tgt.Name = lines[0];
-
-                if(lines.Count() > 3) 
-                {
-                    // Vim inserts CRLF in tail of last line.
-                    lines.RemoveAt(lines.Count - 1);
-                    tgt.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
-                } else 
-                {
-                    tgt.Desc = "";
-                }
-
-                ShowSub(tgt);
-            }
-            else
-            {
-                throw new Exception("invalid argument");
-            }
+            // Vim inserts CRLF in tail of last line.
+            lines.RemoveAt(lines.Count - 1);
+            tgt.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
+        } else 
+        {
+            tgt.Desc = "";
         }
-        else 
-        {
-            throw new Exception("invalid argument");
+
+        ShowSub(tgt);
+    }
+
+    private void CheckNumArgumentsEqual(string[] args, int num)
+    {
+        if(args.Count() != num) {
+            throw new Exception("Invalid number of arguments");
+        }
+    }
+
+    private void CheckNumArgumentsMin(string[] args, int min)
+    {
+        if(args.Count() <= min) {
+            throw new Exception("Invalid number of arguments");
         }
     }
 
