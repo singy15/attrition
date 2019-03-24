@@ -220,7 +220,7 @@ public class AISService
     private void ShowSub(Task t)
     {
         Console.WriteLine(
-                AnsiColor("3", null, "#" + t.Id.ToString()) + " " 
+                AnsiColor("3", null, String.Format("{0, -1}", "#" + t.Id.ToString())) + " " 
                     + AnsiColor(((t.Status == Task.StatusNameToCode(">"))? "1" : "5"), 
                     null, 
                     Task.StatusCodeToName(t.Status)) 
