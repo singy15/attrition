@@ -100,55 +100,16 @@ public class AISInterface
         this.svc = svc;
     }
 
-    public void Help(string[] args)
-    {
-        svc.Help(args);
-    }
-
-    public void List(string[] args)
-    {
-        svc.List(args);
-    }
-
-    public void Ls(string[] args)
-    {
-        svc.List(args);
-    }
-
-    public void ListAll(string[] args)
-    {
-        svc.ListAll(args);
-    }
-
-    public void Show(string[] args)
-    {
-        svc.Show(args);
-    }
-
-    public void Add(string[] args)
-    {
-        svc.Add(args);
-    }
-
-    public void Del(string[] args)
-    {
-        svc.Del(args);
-    }
-
-    public void Archive(string[] args)
-    {
-        svc.Archive(args);
-    }
-
-    public void Mod(string[] args)
-    {
-        svc.Mod(args);
-    }
-
-    public void Test(string[] args)
-    {
-        svc.Test(args);
-    }
+    public void Help(string[] args) { svc.Help(args); }
+    public void List(string[] args) { svc.List(args); }
+    public void Ls(string[] args) { svc.List(args); }
+    public void ListAll(string[] args) { svc.ListAll(args); }
+    public void Show(string[] args) { svc.Show(args); }
+    public void Add(string[] args) { svc.Add(args); }
+    public void Del(string[] args) { svc.Del(args); }
+    public void Archive(string[] args) { svc.Archive(args); }
+    public void Mod(string[] args) { svc.Mod(args); }
+    public void Test(string[] args) { svc.Test(args); }
 }
 
 public class AISService
@@ -281,8 +242,8 @@ public class AISService
     public void Show(string[] args)
     {
         CheckNumArgumentsEqual(args, 2);
-        Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        Console.WriteLine(t.GetDescriptor(false));
+        Console.WriteLine(Task.SelectById(db, 
+                    Int32.Parse(args[1])).GetDescriptor(false));
     }
 
     private List<Task> OrderTaskByStatus(List<Task> list)
@@ -315,25 +276,17 @@ public class AISService
 
     public void List(string[] args)
     {
-        List<Task> sorted = OrderTaskByStatus(db.Task);
-
-        foreach(Task t in sorted)
-        {
-            if(!t.IsArchived)
-            {
-                ShowSub(t);
-            }
-        }
+        OrderTaskByStatus(db.Task)
+            .Where(x => !(x.IsArchived))
+            .ToList()
+            .ForEach(x => ShowSub(x));
     }
 
     public void ListAll(string[] args)
     {
-        List<Task> sorted = OrderTaskById(db.Task);
-
-        foreach(Task t in sorted)
-        {
-            ShowSub(t);
-        }
+        OrderTaskById(db.Task)
+            .ToList()
+            .ForEach(x => ShowSub(x));
     }
 
     public void Add(string[] args)
@@ -381,15 +334,13 @@ public class AISService
     {
         CheckNumArgumentsMin(args, 2);
 
-        foreach(string arg in args.Skip(1).ToArray())
-        {
-            Task tgt = Task.SelectById(db, Int32.Parse(arg));
-
-            if(tgt != null)
-            {
-                tgt.IsArchived = !tgt.IsArchived;
-            }
-        }
+        args
+            .Skip(1)
+            .ToList()
+            .ForEach(arg => db.Task
+                    .Where(x => x.Id == Int32.Parse(arg))
+                    .ToList()
+                    .ForEach(x => x.IsArchived = !(x.IsArchived)));
     }
 
     public void Mod(string[] args)
@@ -571,7 +522,6 @@ public class Task
 
     public string GetDescriptor(bool withUsage) 
     {
-
         string usage = String.Format(
                 "#   Task descriptor format{0}"
                 + "#   #<id> <status> <name>{0}"
@@ -640,15 +590,7 @@ public class Task
 
     public static Task SelectById(AISDB db, int id)
     {
-        foreach(Task t in db.Task)
-        {
-            if(t.Id == id)
-            {
-                return t;
-            }
-        }
-
-        return null;
+        return db.Task.FirstOrDefault(x => x.Id == id);
     }
 }
 
