@@ -27,12 +27,6 @@ public class AISMain
 {
     public static void Main(string[] args) 
     {
-        // Task t = new Task();
-        // t.Status = "sadf";
-        // var prop = (t).GetType()
-        //     .GetProperty(AISStringUtil.KebabToPascal("ord-status"));
-        // Console.WriteLine(prop.GetValue(t));
-
         AIS atmt = new AIS();
         atmt.Initialize();
         atmt.Exec(args);
@@ -111,11 +105,6 @@ public class AISInterface
         svc.Help(args);
     }
 
-    public void Launch(string[] args) 
-    {
-        svc.Launch(args);
-    }
-
     public void List(string[] args)
     {
         svc.List(args);
@@ -156,11 +145,6 @@ public class AISInterface
         svc.Mod(args);
     }
 
-    public void ModStatus(string[] args)
-    {
-        svc.ModStatus(args);
-    }
-
     public void Test(string[] args)
     {
         svc.Test(args);
@@ -188,11 +172,11 @@ public class AISService
         // InsertTestData();
         // DumpDB();
 
-        Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        Console.WriteLine(t.GetDescriptor(false));
+        // Task t = Task.SelectById(db, Int32.Parse(args[1]));
+        // Console.WriteLine(t.GetDescriptor(false));
 
-        Task parsed = Task.ParseDescriptor(t.GetDescriptor(false), false);
-        Console.WriteLine(parsed.GetDescriptor(false));
+        // Task parsed = Task.ParseDescriptor(t.GetDescriptor(false), false);
+        // Console.WriteLine(parsed.GetDescriptor(false));
     }
 
     public void CreateDB()
@@ -258,13 +242,30 @@ public class AISService
                 String.Format("{0, -20}", "    " + commandName) + description);
     }
 
+    private string AnsiColor(string foreCol, string backCol, string str)
+    {
+        string fore = (foreCol != null)? foreCol : "9";
+        string back = (backCol != null)? backCol : "9";
+        return String.Format("\u001b[3{0}m\u001b[4{1}m{2}\u001b[0m", fore, back, str);
+    }
+
+    private string AnsiUnderline(string str)
+    {
+        return String.Format("\u001b[4m{0}\u001b[0m", str);
+    }
+
     private void ShowSub(Task t)
     {
         Console.WriteLine(
-                "#" + t.Id + " " 
-                + Task.StatusCodeToName(t.Status) + " " 
+                AnsiColor("3", null, "#" + t.Id.ToString()) + " " 
+                    + AnsiColor(((t.Status == Task.StatusNameToCode(">"))? "1" : "5"), 
+                    null, 
+                    Task.StatusCodeToName(t.Status)) 
+                + " " 
                 + ((t.IsArchived)? "[A] " : "") 
-                + t.Name);
+                + ((t.Status == Task.StatusNameToCode("-"))? "\u001b[9m" : "")
+                + AnsiColor("6", null, t.Name)
+                + "\u001b[0m");
         if(t.Desc != "")
         {
             string[] lines = t.Desc.Split(new string[] { "\r\n" }
