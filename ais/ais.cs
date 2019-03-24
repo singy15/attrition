@@ -27,6 +27,12 @@ public class AISMain
 {
     public static void Main(string[] args) 
     {
+        // Task t = new Task();
+        // t.Status = "sadf";
+        // var prop = (t).GetType()
+        //     .GetProperty(AISStringUtil.KebabToPascal("ord-status"));
+        // Console.WriteLine(prop.GetValue(t));
+
         AIS atmt = new AIS();
         atmt.Initialize();
         atmt.Exec(args);
@@ -54,7 +60,7 @@ public class AIS
         if(args.Length > 0) 
         {
             MethodInfo method = ifs.GetType()
-                .GetMethod(KebabToPascal(args[0]));
+                .GetMethod(AISStringUtil.KebabToPascal(args[0]));
 
             if(null != method)
             {
@@ -88,15 +94,6 @@ public class AIS
             return string.Empty;
         }
         return char.ToUpper(s[0]) + s.Substring(1);
-    }
-
-    public static string KebabToPascal(string kebab)
-    {
-        return kebab
-            .Split(new [] {"-"}, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => char.ToUpperInvariant(s[0]) 
-                    + s.Substring(1, s.Length - 1))
-            .Aggregate(string.Empty, (s1, s2) => s1 + s2);
     }
 }
 
@@ -201,7 +198,8 @@ public class AISService
 
     public void DumpDB()
     {
-        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db), Encoding.GetEncoding(932));
+        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db), 
+                Encoding.GetEncoding(932));
     }
 
     public void RestoreDB()
@@ -281,9 +279,25 @@ public class AISService
         Console.WriteLine(t.GetDescriptor());
     }
 
+    private List<Task> OrderTaskByStatus(List<Task> list)
+    {
+        List<Task> sorted = new List<Task>();
+
+        foreach(Task t in db.Task)
+        {
+            sorted.Add(t);
+        }
+
+        sorted.Sort((a,b) => a.OrdStatus - b.OrdStatus);
+
+        return sorted;
+    }
+
     public void List(string[] args)
     {
-        foreach(Task t in db.Task)
+        List<Task> sorted = OrderTaskByStatus(db.Task);
+
+        foreach(Task t in sorted)
         {
             if(!t.IsArchived)
             {
@@ -474,6 +488,32 @@ public class Task
     public int Id { get; set; }
     public string Name { get; set; }
     public string Status { get; set; }
+    public int OrdStatus {
+        get {
+            if(Status == ">")
+            {
+                return 0;
+            }
+            if(Status == "*")
+            {
+                return 1;
+            }
+            if(Status == "?")
+            {
+                return 2;
+            }
+            if(Status == "x")
+            {
+                return 3;
+            }
+            if(Status == "-")
+            {
+                return 4;
+            }
+
+            return 0;
+        }
+    }
     public string Desc { get; set; }
     public bool IsArchived { get; set; }
     public string PlDelivSt { get; set; }
@@ -495,7 +535,7 @@ public class Task
                 Name,
                 Desc);
     }
-    
+
     public static Task ParseDescriptor(string descriptor, bool trimLast)
     {
         Task t = new Task();
@@ -573,6 +613,18 @@ public class AISJsonUtility
             var serializer = new DataContractJsonSerializer(typeof(T));
             return (T)serializer.ReadObject(stream);
         }
+    }
+}
+
+public class AISStringUtil
+{
+    public static string KebabToPascal(string kebab)
+    {
+        return kebab
+            .Split(new [] {"-"}, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => char.ToUpperInvariant(s[0]) 
+                    + s.Substring(1, s.Length - 1))
+            .Aggregate(string.Empty, (s1, s2) => s1 + s2);
     }
 }
 
