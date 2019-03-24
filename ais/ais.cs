@@ -121,6 +121,11 @@ public class AISInterface
         svc.List(args);
     }
 
+    public void Ls(string[] args)
+    {
+        svc.List(args);
+    }
+
     public void ListAll(string[] args)
     {
         svc.ListAll(args);
@@ -184,10 +189,10 @@ public class AISService
         // DumpDB();
 
         Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        Console.WriteLine(t.GetDescriptor());
+        Console.WriteLine(t.GetDescriptor(false));
 
-        Task parsed = Task.ParseDescriptor(t.GetDescriptor(), false);
-        Console.WriteLine(parsed.GetDescriptor());
+        Task parsed = Task.ParseDescriptor(t.GetDescriptor(false), false);
+        Console.WriteLine(parsed.GetDescriptor(false));
     }
 
     public void CreateDB()
@@ -276,7 +281,7 @@ public class AISService
     {
         CheckNumArgumentsEqual(args, 2);
         Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        Console.WriteLine(t.GetDescriptor());
+        Console.WriteLine(t.GetDescriptor(false));
     }
 
     private List<Task> OrderTaskByStatus(List<Task> list)
@@ -320,8 +325,8 @@ public class AISService
         
         t.Id = db.SequenceTask.GetSeq();
         t.Status = Task.StatusNameToCode("*");
-        t.Name = "{Name}";
-        t.Desc = "{Desc}";
+        t.Name = "<name>";
+        t.Desc = "<description>";
 
         string input = InputWithVimUTF8(t);
 
@@ -437,7 +442,7 @@ public class AISService
 
     private string InputWithVimUTF8(Task t)
     {
-        File.WriteAllText(tmpTxtPath, t.GetDescriptor(), Encoding.GetEncoding(65001));
+        File.WriteAllText(tmpTxtPath, t.GetDescriptor(false), Encoding.GetEncoding(65001));
 
         var startinfo = new ProcessStartInfo("vim")
         {
@@ -547,17 +552,28 @@ public class Task
         return " ";
     }
 
-    public string GetDescriptor() 
+    public string GetDescriptor(bool withUsage) 
     {
+
+        string usage = String.Format(
+                "#   Task descriptor format{0}"
+                + "#   #<id> <status> <name>{0}"
+                + "#   {0}"
+                + "#   <description>{0}"
+                + "#   <description>{0}",
+                AIS.NEWLINE);
+
         return String.Format(
                 "#{1} {2} {3}{0}"
                 + "{0}"
-                + "{4}",
+                + "{4}{0}"
+                + "{5}",
                 AIS.NEWLINE,
                 Id,
                 Task.StatusCodeToName(Status),
                 Name,
-                Desc);
+                Desc,
+                (withUsage)? usage : "");
     }
 
     public static Task ParseDescriptor(string descriptor, bool trimLast)
@@ -584,7 +600,19 @@ public class Task
             {
                 lines.RemoveAt(lines.Count - 1);
             }
-            t.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
+            List<string> tmpLine = lines.Skip(2).ToList();
+
+            List<string> tmpLine2 = new List<string>();
+
+            foreach(string s in tmpLine)
+            {
+                if(!(Regex.IsMatch(s, @"[\s]*\#.*$")))
+                {
+                    tmpLine2.Add(s);
+                }
+            }
+
+            t.Desc = String.Join("\r\n", tmpLine2);
         } else 
         {
             t.Desc = "";
