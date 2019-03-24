@@ -238,10 +238,15 @@ public class AISService
 
     private void ShowSub(Task t)
     {
-        Console.WriteLine("#" + t.Id + " " + t.Status + " " + ((t.IsArchived)? "[A] " : "") + t.Name);
+        Console.WriteLine(
+                "#" + t.Id + " " 
+                + t.Status + " " 
+                + ((t.IsArchived)? "[A] " : "") 
+                + t.Name);
         if(t.Desc != "")
         {
-            string[] lines = t.Desc.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            string[] lines = t.Desc.Split(new string[] { "\r\n" }
+                    , StringSplitOptions.None);
             foreach(string l in lines)
             {
                 Console.WriteLine("  " + l);
@@ -311,14 +316,7 @@ public class AISService
         {
             foreach(string arg in args.Skip(1).ToArray())
             {
-                Task tgt = null;
-                foreach(Task t in db.Task)
-                {
-                    if(t.Id.ToString() == arg)
-                    {
-                        tgt = t;
-                    }
-                }
+                Task tgt = Task.SelectById(db, Int32.Parse(arg));
 
                 if(tgt != null)
                 {
@@ -338,14 +336,7 @@ public class AISService
         {
             foreach(string arg in args.Skip(1).ToArray())
             {
-                Task tgt = null;
-                foreach(Task t in db.Task)
-                {
-                    if(t.Id.ToString() == arg)
-                    {
-                        tgt = t;
-                    }
-                }
+                Task tgt = Task.SelectById(db, Int32.Parse(arg));
 
                 if(tgt != null)
                 {
@@ -363,37 +354,32 @@ public class AISService
     {
         if(args.Count() == 2) 
         {
-           Task tgt = null;
-           foreach(Task t in db.Task)
-           {
-               if(t.Id.ToString() == args[1])
-               {
-                   tgt = t;
-               }
-           }
+            Task tgt = Task.SelectById(db, Int32.Parse(args[1]));
 
-           if(tgt != null)
-           {
-               List<string> lines = InputWithVimUTF8(tgt).Split(new string[] { "\r\n" }, StringSplitOptions.None).ToList();
+            if(tgt != null)
+            {
+                List<string> lines = InputWithVimUTF8(tgt).Split(
+                        new string[] { "\r\n" }, 
+                        StringSplitOptions.None).ToList();
 
-               tgt.Name = lines[0];
+                tgt.Name = lines[0];
 
-               if(lines.Count() > 3) 
-               {
-                   // Vim inserts CRLF in tail of last line.
-                   lines.RemoveAt(lines.Count - 1);
-                   tgt.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
-               } else 
-               {
-                   tgt.Desc = "";
-               }
+                if(lines.Count() > 3) 
+                {
+                    // Vim inserts CRLF in tail of last line.
+                    lines.RemoveAt(lines.Count - 1);
+                    tgt.Desc = String.Join("\r\n", lines.Skip(2).ToArray());
+                } else 
+                {
+                    tgt.Desc = "";
+                }
 
-               ShowSub(tgt);
-           }
-           else
-           {
-               throw new Exception("invalid argument");
-           }
+                ShowSub(tgt);
+            }
+            else
+            {
+                throw new Exception("invalid argument");
+            }
         }
         else 
         {
@@ -482,6 +468,19 @@ public class Task
         d += NEWLINE;
         d += Desc;
         return d;
+    }
+
+    public static Task SelectById(AISDB db, int id)
+    {
+        foreach(Task t in db.Task)
+        {
+            if(t.Id == id)
+            {
+                return t;
+            }
+        }
+
+        return null;
     }
 }
 
