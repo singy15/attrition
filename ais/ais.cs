@@ -25,7 +25,7 @@ using System.Collections.Generic;
 
 public class AISMain
 {
-    public static void Main(string[] args) 
+    public static void Main(string[] args)
     {
         AIS atmt = new AIS();
         atmt.Initialize();
@@ -51,29 +51,29 @@ public class AIS
     {
         svc.RestoreOrCreateDB();
 
-        if(args.Length > 0) 
+        if(args.Length > 0)
         {
             MethodInfo method = ifs.GetType()
                 .GetMethod(AISStringUtil.KebabToPascal(args[0]));
 
             if(null != method)
             {
-                try 
+                try
                 {
                     method.Invoke(ifs, new Object[]{ args });
-                } 
-                catch(Exception e) 
+                }
+                catch(Exception e)
                 {
                     Console.WriteLine(e);
                 }
             }
-            else 
+            else
             {
                 Console.WriteLine("ERROR : Command not found!");
                 ifs.Help(args);
             }
         }
-        else 
+        else
         {
             ifs.Help(args);
         }
@@ -95,7 +95,7 @@ public class AISInterface
 {
     private AISService svc;
 
-    public AISInterface(AISService svc) 
+    public AISInterface(AISService svc)
     {
         this.svc = svc;
     }
@@ -150,7 +150,7 @@ public class AISService
 
     public void DumpDB()
     {
-        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db), 
+        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db),
                 Encoding.GetEncoding(932));
     }
 
@@ -220,12 +220,12 @@ public class AISService
     private void ShowSub(Task t)
     {
         Console.WriteLine(
-                AnsiColor("3", null, String.Format("{0, -1}", "#" + t.Id.ToString())) + " " 
-                    + AnsiColor(((t.Status == Task.StatusNameToCode(">"))? "1" : "5"), 
-                    null, 
-                    Task.StatusCodeToName(t.Status)) 
-                + " " 
-                + ((t.IsArchived)? "[A] " : "") 
+                AnsiColor("3", null, String.Format("{0, -1}", "#" + t.Id.ToString())) + " "
+                    + AnsiColor(((t.Status == Task.StatusNameToCode(">"))? "1" : "5"),
+                    null,
+                    Task.StatusCodeToName(t.Status))
+                + " "
+                + ((t.IsArchived)? "[A] " : "")
                 + ((t.Status == Task.StatusNameToCode("-"))? "\u001b[9m" : "")
                 + AnsiColor("6", null, t.Name)
                 + "\u001b[0m");
@@ -244,7 +244,7 @@ public class AISService
     public void Show(string[] args)
     {
         CheckNumArgumentsEqual(args, 2);
-        Console.WriteLine(Task.SelectById(db, 
+        Console.WriteLine(Task.SelectById(db,
                     Int32.Parse(args[1])).GetDescriptor(false));
     }
 
@@ -294,7 +294,7 @@ public class AISService
     public void Add(string[] args)
     {
         Task t = new Task();
-        
+
         t.Id = db.SequenceTask.GetSeq();
         t.Status = Task.StatusNameToCode("*");
         t.Name = "<name>";
@@ -359,7 +359,7 @@ public class AISService
         }
 
         List<string> lines = input.Split(
-                new string[] { "\r\n" }, 
+                new string[] { "\r\n" },
                 StringSplitOptions.None).ToList();
 
         Task modified = Task.ParseDescriptor(input, true);
@@ -383,8 +383,8 @@ public class AISService
         CheckNumArgumentsEqual(args, 2);
 
         db.Task
-            .Where(x => 
-                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*", 
+            .Where(x =>
+                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline))
             .ToList()
             .ForEach(x => ShowSub(x));
@@ -406,7 +406,7 @@ public class AISService
         }
     }
 
-    private string InputWithNotepad() 
+    private string InputWithNotepad()
     {
         // Prepare temporary text file.
         File.WriteAllText(tmpTxtPath, "", Encoding.GetEncoding(932));
@@ -415,7 +415,7 @@ public class AISService
         psi.FileName = @"notepad";
         psi.Arguments = tmpTxtPath;
         psi.UseShellExecute = true;
-        
+
         Process p = Process.Start(psi);
         p.WaitForExit();
 
@@ -534,7 +534,7 @@ public class Task
         return " ";
     }
 
-    public string GetDescriptor(bool withUsage) 
+    public string GetDescriptor(bool withUsage)
     {
         string usage = String.Format(
                 "#   Task descriptor format{0}"
@@ -562,10 +562,10 @@ public class Task
         Task t = new Task();
 
         List<string> lines = descriptor.Split(
-                new string[] { "\r\n" }, 
+                new string[] { "\r\n" },
                 StringSplitOptions.None).ToList();
 
-        Regex regex = new Regex( @"\#(.+?) (.+?) ([\s\S]+)$", 
+        Regex regex = new Regex( @"\#(.+?) (.+?) ([\s\S]+)$",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         MatchCollection mc = regex.Matches(lines[0]);
@@ -575,7 +575,7 @@ public class Task
         t.Status = Task.StatusNameToCode(m.Groups[2].Value);
         t.Name = m.Groups[3].Value;
 
-        if(lines.Count() > 3) 
+        if(lines.Count() > 3)
         {
             if(trimLast)
             {
@@ -594,7 +594,7 @@ public class Task
             }
 
             t.Desc = String.Join("\r\n", tmpLine2);
-        } else 
+        } else
         {
             t.Desc = "";
         }
@@ -647,7 +647,7 @@ public class AISStringUtil
     {
         return kebab
             .Split(new [] {"-"}, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => char.ToUpperInvariant(s[0]) 
+            .Select(s => char.ToUpperInvariant(s[0])
                     + s.Substring(1, s.Length - 1))
             .Aggregate(string.Empty, (s1, s2) => s1 + s2);
     }
