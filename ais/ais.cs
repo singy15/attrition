@@ -219,6 +219,7 @@ public class AISService
     public void ClearConsole()
     {
         Console.WriteLine("\u001b[2J");
+        Console.WriteLine("\u001b[0;0H");
     }
 
     public string Ansi(string sq, string s)
