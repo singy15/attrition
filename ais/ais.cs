@@ -224,6 +224,7 @@ public class AISService
                     , StringSplitOptions.None);
             foreach(string l in lines)
             {
+                if(Regex.IsMatch(l, @"[\s]*\;.*$")) continue;
                 Console.WriteLine("  " + l);
             }
         }
