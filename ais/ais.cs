@@ -267,15 +267,19 @@ public class AISService
 
     public void List(string[] args)
     {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
         OrderTaskByStatus(db.Task)
             .Where(x => !(x.IsArchived))
+            .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
     }
 
     public void ListAll(string[] args)
     {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
         OrderTaskById(db.Task)
+            .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
     }
