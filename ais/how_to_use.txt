@@ -1,0 +1,9 @@
+
+[Installation]
+
+1. Copy ais to any location in $PATH.
+
+2. Create symbolic link that references ais.exe on directory any location in $PATH.
+
+3. Do "chmod a+x ais".
+
