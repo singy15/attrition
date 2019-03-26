@@ -29,7 +29,25 @@ public class AISMain
     {
         AIS atmt = new AIS();
         atmt.Initialize();
-        atmt.Exec(args);
+
+        if((args.Count() > 0) && (args[0] == "i"))
+        {
+            while(true)
+            {
+                Console.Write("> ");
+                string input = Console.ReadLine();
+                if(input == "exit")
+                {
+                    return;
+                }
+                atmt.Exec(input.Split(new string[] { " " },
+                            StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries));
+            }
+        }
+        else
+        {
+            atmt.Exec(args);
+        }
     }
 }
 
@@ -43,6 +61,7 @@ public class AIS
     public void Initialize()
     {
         Console.OutputEncoding = new UTF8Encoding();
+        Console.InputEncoding = new UTF8Encoding();
         svc = new AISService();
         ifs = new AISInterface(svc);
     }
