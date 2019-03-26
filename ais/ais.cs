@@ -130,6 +130,7 @@ public class AISInterface
     public void Archive(string[] args) { svc.Archive(args); }
     public void Mod(string[] args) { svc.Mod(args); }
     public void Search(string[] args) { svc.Search(args); }
+    public void Cls(string[] args) { svc.Cls(args); }
     public void Test(string[] args) { svc.Test(args); }
 }
 
@@ -213,6 +214,11 @@ public class AISService
     {
         Console.WriteLine(
                 String.Format("{0, -20}", "    " + commandName) + description);
+    }
+
+    public void ClearConsole()
+    {
+        Console.WriteLine("\u001b[2J");
     }
 
     public string Ansi(string sq, string s)
@@ -387,6 +393,11 @@ public class AISService
                     RegexOptions.IgnoreCase | RegexOptions.Singleline))
             .ToList()
             .ForEach(x => ShowSub(x));
+    }
+
+    public void Cls(string[] args)
+    {
+        ClearConsole();
     }
 
     private void CheckNumArgumentsEqual(string[] args, int num)
