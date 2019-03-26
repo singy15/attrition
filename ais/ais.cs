@@ -291,7 +291,7 @@ public class AISService
         t.Id = db.SequenceTask.GetSeq();
         t.Status = Task.StatusNameToCode("*");
         t.Name = "<name>";
-        t.Desc = "<description>";
+        t.Desc = "# <description>";
 
         string input = InputWithVimUTF8(t);
 
