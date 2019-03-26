@@ -196,11 +196,9 @@ public class AISService
                 String.Format("{0, -20}", "    " + commandName) + description);
     }
 
-    private string AnsiColor(string foreCol, string backCol, string str)
+    public string Ansi(string sq, string s)
     {
-        string fore = (foreCol != null)? foreCol : "9";
-        string back = (backCol != null)? backCol : "9";
-        return String.Format("\u001b[3{0}m\u001b[4{1}m{2}\u001b[0m", fore, back, str);
+        return String.Format("\u001b[{0}m{1}\u001b[0m", sq, s);
     }
 
     private string AnsiUnderline(string str)
@@ -210,15 +208,15 @@ public class AISService
 
     private void ShowSub(Task t)
     {
+        bool isWIP = t.Status == Task.StatusNameToCode(">");
+
         Console.WriteLine(
-                AnsiColor("3", null, String.Format("{0, -1}", "#" + t.Id.ToString())) + " "
-                    + AnsiColor(((t.Status == Task.StatusNameToCode(">"))? "1" : "5"),
-                    null,
-                    Task.StatusCodeToName(t.Status))
+                Ansi("33" + (isWIP ? ";1" : ""), String.Format("{0, -1}", "#" + t.Id.ToString())) + " "
+                + Ansi("35" + (isWIP ? ";1" : ""), Task.StatusCodeToName(t.Status))
                 + " "
                 + ((t.IsArchived)? "[A] " : "")
                 + ((t.Status == Task.StatusNameToCode("-"))? "\u001b[9m" : "")
-                + AnsiColor("6", null, t.Name)
+                + Ansi("36" + (isWIP ? ";1" : ""), t.Name)
                 + "\u001b[0m");
         if(t.Desc != "")
         {
