@@ -206,7 +206,7 @@ public class AISService
         return String.Format("\u001b[4m{0}\u001b[0m", str);
     }
 
-    private void ShowSub(Task t)
+    private void ShowSub(Task t, bool showAll = false)
     {
         bool isWIP = t.Status == Task.StatusNameToCode(">");
 
@@ -224,8 +224,9 @@ public class AISService
                     , StringSplitOptions.None);
             foreach(string l in lines)
             {
-                if(Regex.IsMatch(l, @"[\s]*\;.*$")) continue;
-                Console.WriteLine("  " + l);
+                bool isComment = Regex.IsMatch(l, @"[\s]*\;.*$");
+                if(!showAll && isComment) continue;
+                Console.WriteLine("  " + ((isComment)? Ansi("32", l) : l));
             }
         }
         Console.WriteLine("");
@@ -234,8 +235,7 @@ public class AISService
     public void Show(string[] args)
     {
         CheckNumArgumentsEqual(args, 2);
-        Console.WriteLine(Task.SelectById(db,
-                    Int32.Parse(args[1])).GetDescriptor(false));
+        ShowSub(Task.SelectById(db, Int32.Parse(args[1])), true);
     }
 
     private List<Task> OrderTaskByStatus(List<Task> list)
