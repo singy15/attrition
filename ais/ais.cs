@@ -131,15 +131,6 @@ public class AISService
 
     public void Test(string[] args)
     {
-        // CreateDB();
-        // InsertTestData();
-        // DumpDB();
-
-        // Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        // Console.WriteLine(t.GetDescriptor(false));
-
-        // Task parsed = Task.ParseDescriptor(t.GetDescriptor(false), false);
-        // Console.WriteLine(parsed.GetDescriptor(false));
     }
 
     public void CreateDB()
@@ -307,10 +298,7 @@ public class AISService
             return;
         }
 
-        Task parsed = Task.ParseDescriptor(input, true);
-        t.Name = parsed.Name;
-        t.Status = parsed.Status;
-        t.Desc = parsed.Desc;
+        t.LoadDescriptor(input, true);
 
         db.Task.Add(t);
 
@@ -362,20 +350,9 @@ public class AISService
                 new string[] { "\r\n" },
                 StringSplitOptions.None).ToList();
 
-        Task modified = Task.ParseDescriptor(input, true);
-        tgt.Name = modified.Name;
-        tgt.Status = modified.Status;
-        tgt.Desc = modified.Desc;
+        tgt.LoadDescriptor(input, true);
 
         ShowSub(tgt);
-    }
-
-    public void ModStatus(string[] args)
-    {
-        CheckNumArgumentsEqual(args, 3);
-
-        Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        t.Status = args[2];
     }
 
     public void Search(string[] args)
@@ -600,6 +577,14 @@ public class Task
         }
 
         return t;
+    }
+
+    public void LoadDescriptor(string descriptor, bool trimLast)
+    {
+        Task t = Task.ParseDescriptor(descriptor, trimLast);
+        this.Name = t.Name;
+        this.Status = t.Status;
+        this.Desc = t.Desc;
     }
 
     public static Task SelectById(AISDB db, int id)
