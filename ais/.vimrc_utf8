@@ -30,3 +30,6 @@ set nocompatible
 set visualbell
 set errorbells
 
+" indent
+set autoindent
+
