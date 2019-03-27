@@ -25,11 +25,29 @@ using System.Collections.Generic;
 
 public class AISMain
 {
-    public static void Main(string[] args) 
+    public static void Main(string[] args)
     {
         AIS atmt = new AIS();
         atmt.Initialize();
-        atmt.Exec(args);
+
+        if((args.Count() > 0) && (args[0] == "i"))
+        {
+            while(true)
+            {
+                Console.Write("> ");
+                string input = Console.ReadLine();
+                if(input == "exit")
+                {
+                    return;
+                }
+                atmt.Exec(input.Split(new string[] { " " },
+                            StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries));
+            }
+        }
+        else
+        {
+            atmt.Exec(args);
+        }
     }
 }
 
@@ -43,6 +61,7 @@ public class AIS
     public void Initialize()
     {
         Console.OutputEncoding = new UTF8Encoding();
+        Console.InputEncoding = new UTF8Encoding();
         svc = new AISService();
         ifs = new AISInterface(svc);
     }
@@ -51,29 +70,29 @@ public class AIS
     {
         svc.RestoreOrCreateDB();
 
-        if(args.Length > 0) 
+        if(args.Length > 0)
         {
             MethodInfo method = ifs.GetType()
                 .GetMethod(AISStringUtil.KebabToPascal(args[0]));
 
             if(null != method)
             {
-                try 
+                try
                 {
                     method.Invoke(ifs, new Object[]{ args });
-                } 
-                catch(Exception e) 
+                }
+                catch(Exception e)
                 {
                     Console.WriteLine(e);
                 }
             }
-            else 
+            else
             {
                 Console.WriteLine("ERROR : Command not found!");
                 ifs.Help(args);
             }
         }
-        else 
+        else
         {
             ifs.Help(args);
         }
@@ -95,7 +114,7 @@ public class AISInterface
 {
     private AISService svc;
 
-    public AISInterface(AISService svc) 
+    public AISInterface(AISService svc)
     {
         this.svc = svc;
     }
@@ -111,6 +130,7 @@ public class AISInterface
     public void Archive(string[] args) { svc.Archive(args); }
     public void Mod(string[] args) { svc.Mod(args); }
     public void Search(string[] args) { svc.Search(args); }
+    public void Cls(string[] args) { svc.Cls(args); }
     public void Test(string[] args) { svc.Test(args); }
 }
 
@@ -131,15 +151,6 @@ public class AISService
 
     public void Test(string[] args)
     {
-        // CreateDB();
-        // InsertTestData();
-        // DumpDB();
-
-        // Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        // Console.WriteLine(t.GetDescriptor(false));
-
-        // Task parsed = Task.ParseDescriptor(t.GetDescriptor(false), false);
-        // Console.WriteLine(parsed.GetDescriptor(false));
     }
 
     public void CreateDB()
@@ -150,7 +161,7 @@ public class AISService
 
     public void DumpDB()
     {
-        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db), 
+        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db),
                 Encoding.GetEncoding(932));
     }
 
@@ -205,11 +216,15 @@ public class AISService
                 String.Format("{0, -20}", "    " + commandName) + description);
     }
 
-    private string AnsiColor(string foreCol, string backCol, string str)
+    public void ClearConsole()
     {
-        string fore = (foreCol != null)? foreCol : "9";
-        string back = (backCol != null)? backCol : "9";
-        return String.Format("\u001b[3{0}m\u001b[4{1}m{2}\u001b[0m", fore, back, str);
+        Console.WriteLine("\u001b[2J");
+        Console.WriteLine("\u001b[0;0H");
+    }
+
+    public string Ansi(string sq, string s)
+    {
+        return String.Format("\u001b[{0}m{1}\u001b[0m", sq, s);
     }
 
     private string AnsiUnderline(string str)
@@ -217,17 +232,17 @@ public class AISService
         return String.Format("\u001b[4m{0}\u001b[0m", str);
     }
 
-    private void ShowSub(Task t)
+    private void ShowSub(Task t, bool showAll = false)
     {
+        bool isWIP = t.Status == Task.StatusNameToCode(">");
+
         Console.WriteLine(
-                AnsiColor("3", null, String.Format("{0, -1}", "#" + t.Id.ToString())) + " " 
-                    + AnsiColor(((t.Status == Task.StatusNameToCode(">"))? "1" : "5"), 
-                    null, 
-                    Task.StatusCodeToName(t.Status)) 
-                + " " 
-                + ((t.IsArchived)? "[A] " : "") 
+                Ansi("33" + (isWIP ? ";1" : ""), String.Format("{0, -1}", "#" + t.Id.ToString())) + " "
+                + Ansi("35" + (isWIP ? ";1" : ""), Task.StatusCodeToName(t.Status))
+                + " "
+                + ((t.IsArchived)? "[A] " : "")
                 + ((t.Status == Task.StatusNameToCode("-"))? "\u001b[9m" : "")
-                + AnsiColor("6", null, t.Name)
+                + Ansi("36" + (isWIP ? ";1" : ""), t.Name)
                 + "\u001b[0m");
         if(t.Desc != "")
         {
@@ -235,7 +250,9 @@ public class AISService
                     , StringSplitOptions.None);
             foreach(string l in lines)
             {
-                Console.WriteLine("  " + l);
+                bool isComment = Regex.IsMatch(l, @"[\s]*\;.*$");
+                if(!showAll && isComment) continue;
+                Console.WriteLine("  " + ((isComment)? Ansi("32", l) : l));
             }
         }
         Console.WriteLine("");
@@ -244,8 +261,7 @@ public class AISService
     public void Show(string[] args)
     {
         CheckNumArgumentsEqual(args, 2);
-        Console.WriteLine(Task.SelectById(db, 
-                    Int32.Parse(args[1])).GetDescriptor(false));
+        ShowSub(Task.SelectById(db, Int32.Parse(args[1])), true);
     }
 
     private List<Task> OrderTaskByStatus(List<Task> list)
@@ -278,15 +294,19 @@ public class AISService
 
     public void List(string[] args)
     {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
         OrderTaskByStatus(db.Task)
             .Where(x => !(x.IsArchived))
+            .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
     }
 
     public void ListAll(string[] args)
     {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
         OrderTaskById(db.Task)
+            .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
     }
@@ -294,11 +314,11 @@ public class AISService
     public void Add(string[] args)
     {
         Task t = new Task();
-        
+
         t.Id = db.SequenceTask.GetSeq();
         t.Status = Task.StatusNameToCode("*");
         t.Name = "<name>";
-        t.Desc = "<description>";
+        t.Desc = "# <description>";
 
         string input = InputWithVimUTF8(t);
 
@@ -307,10 +327,7 @@ public class AISService
             return;
         }
 
-        Task parsed = Task.ParseDescriptor(input, true);
-        t.Name = parsed.Name;
-        t.Status = parsed.Status;
-        t.Desc = parsed.Desc;
+        t.LoadDescriptor(input, true);
 
         db.Task.Add(t);
 
@@ -359,23 +376,12 @@ public class AISService
         }
 
         List<string> lines = input.Split(
-                new string[] { "\r\n" }, 
+                new string[] { "\r\n" },
                 StringSplitOptions.None).ToList();
 
-        Task modified = Task.ParseDescriptor(input, true);
-        tgt.Name = modified.Name;
-        tgt.Status = modified.Status;
-        tgt.Desc = modified.Desc;
+        tgt.LoadDescriptor(input, true);
 
         ShowSub(tgt);
-    }
-
-    public void ModStatus(string[] args)
-    {
-        CheckNumArgumentsEqual(args, 3);
-
-        Task t = Task.SelectById(db, Int32.Parse(args[1]));
-        t.Status = args[2];
     }
 
     public void Search(string[] args)
@@ -383,11 +389,16 @@ public class AISService
         CheckNumArgumentsEqual(args, 2);
 
         db.Task
-            .Where(x => 
-                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*", 
+            .Where(x =>
+                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline))
             .ToList()
             .ForEach(x => ShowSub(x));
+    }
+
+    public void Cls(string[] args)
+    {
+        ClearConsole();
     }
 
     private void CheckNumArgumentsEqual(string[] args, int num)
@@ -406,7 +417,7 @@ public class AISService
         }
     }
 
-    private string InputWithNotepad() 
+    private string InputWithNotepad()
     {
         // Prepare temporary text file.
         File.WriteAllText(tmpTxtPath, "", Encoding.GetEncoding(932));
@@ -415,7 +426,7 @@ public class AISService
         psi.FileName = @"notepad";
         psi.Arguments = tmpTxtPath;
         psi.UseShellExecute = true;
-        
+
         Process p = Process.Start(psi);
         p.WaitForExit();
 
@@ -534,7 +545,7 @@ public class Task
         return " ";
     }
 
-    public string GetDescriptor(bool withUsage) 
+    public string GetDescriptor(bool withUsage)
     {
         string usage = String.Format(
                 "#   Task descriptor format{0}"
@@ -562,10 +573,10 @@ public class Task
         Task t = new Task();
 
         List<string> lines = descriptor.Split(
-                new string[] { "\r\n" }, 
+                new string[] { "\r\n" },
                 StringSplitOptions.None).ToList();
 
-        Regex regex = new Regex( @"\#(.+?) (.+?) ([\s\S]+)$", 
+        Regex regex = new Regex( @"\#(.+?) (.+?) ([\s\S]+)$",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         MatchCollection mc = regex.Matches(lines[0]);
@@ -575,7 +586,7 @@ public class Task
         t.Status = Task.StatusNameToCode(m.Groups[2].Value);
         t.Name = m.Groups[3].Value;
 
-        if(lines.Count() > 3) 
+        if(lines.Count() > 3)
         {
             if(trimLast)
             {
@@ -594,12 +605,20 @@ public class Task
             }
 
             t.Desc = String.Join("\r\n", tmpLine2);
-        } else 
+        } else
         {
             t.Desc = "";
         }
 
         return t;
+    }
+
+    public void LoadDescriptor(string descriptor, bool trimLast)
+    {
+        Task t = Task.ParseDescriptor(descriptor, trimLast);
+        this.Name = t.Name;
+        this.Status = t.Status;
+        this.Desc = t.Desc;
     }
 
     public static Task SelectById(AISDB db, int id)
@@ -647,7 +666,7 @@ public class AISStringUtil
     {
         return kebab
             .Split(new [] {"-"}, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => char.ToUpperInvariant(s[0]) 
+            .Select(s => char.ToUpperInvariant(s[0])
                     + s.Substring(1, s.Length - 1))
             .Aggregate(string.Empty, (s1, s2) => s1 + s2);
     }

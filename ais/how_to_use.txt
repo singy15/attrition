@@ -1,0 +1,5 @@
+
+[Installation]
+
+1. Create symbolic link that references ais.exe on directory any location in $PATH.
+
