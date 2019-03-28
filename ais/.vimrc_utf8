@@ -33,3 +33,16 @@ set errorbells
 " nmap
 nmap <Space>t <ESC>i<C-R>=strftime("%Y/%m/%d %H:%M")<CR><CR>
 
+" syntax highlight
+syntax match aisComment /^#.*/
+syntax match aisHidden /^;.*/
+syntax match aisId "\%^#[1234567890]*" nextgroup=aisStatus skipwhite
+syntax match aisStatus / . / contained nextgroup=aisTitle skipwhite
+syntax match aisTitle /.*/ contained
+
+highlight aisComment ctermfg=5
+highlight aisHidden ctermfg=2
+highlight aisId ctermfg=3
+highlight aisStatus ctermfg=5
+highlight aisTitle ctermfg=6
+
