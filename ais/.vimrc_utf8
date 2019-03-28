@@ -31,7 +31,7 @@ set visualbell
 set errorbells
 
 " nmap
-nmap <Space>t <ESC>i<C-R>=strftime("%Y/%m/%d %H:%M")<CR><CR>
+nmap <Space>t a<C-R>=strftime("%Y/%m/%d %H:%M")<CR><ESC>
 
 " indent
 set autoindent
