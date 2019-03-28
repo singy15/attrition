@@ -33,6 +33,9 @@ set errorbells
 " nmap
 nmap <Space>t <ESC>i<C-R>=strftime("%Y/%m/%d %H:%M")<CR><CR>
 
+" indent
+set autoindent
+
 " syntax highlight
 syntax match aisComment /^#.*/
 syntax match aisHidden /^;.*/
