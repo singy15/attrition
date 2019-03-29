@@ -338,6 +338,14 @@ public class AISService
     {
         CheckNumArgumentsMin(args, 2);
 
+
+        Console.Write("Delete #" + string.Join(",", args.Skip(1).ToArray()) + ". Are you sure? (Y/n): ");
+        string confirm = Console.ReadLine();
+        if(confirm.ToLower() == "n")
+        {
+            return;
+        }
+
         foreach(string arg in args.Skip(1).ToArray())
         {
             Task tgt = Task.SelectById(db, Int32.Parse(arg));
