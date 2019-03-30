@@ -264,39 +264,14 @@ public class AISService
         ShowSub(Task.SelectById(db, Int32.Parse(args[1])), true);
     }
 
-    private List<Task> OrderTaskByStatus(List<Task> list)
-    {
-        List<Task> sorted = new List<Task>();
-
-        foreach(Task t in db.Task)
-        {
-            sorted.Add(t);
-        }
-
-        sorted.Sort((a,b) => String.Compare(a.Status,b.Status));
-
-        return sorted;
-    }
-
-    private List<Task> OrderTaskById(List<Task> list)
-    {
-        List<Task> sorted = new List<Task>();
-
-        foreach(Task t in db.Task)
-        {
-            sorted.Add(t);
-        }
-
-        sorted.Sort((a,b) => a.Id - b.Id);
-
-        return sorted;
-    }
-
     public void List(string[] args)
     {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        OrderTaskByStatus(db.Task)
+        db.Task
             .Where(x => !(x.IsArchived))
+            .OrderBy(t => t.Status)
+            .ThenByDescending(t => t.Priority)
+            .ThenBy(t => t.Id)
             .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
@@ -305,7 +280,8 @@ public class AISService
     public void ListAll(string[] args)
     {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        OrderTaskById(db.Task)
+        db.Task
+            .OrderBy(t => t.Id)
             .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
