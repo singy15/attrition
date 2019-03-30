@@ -328,6 +328,9 @@ public class AISService
         }
 
         t.LoadDescriptor(input, true);
+        string dt = DateTimeOffset.Now.ToString(Task.DATETIME_FORMAT);
+        t.Created = dt;
+        t.Updated = dt;
 
         db.Task.Add(t);
 
@@ -388,6 +391,7 @@ public class AISService
                 StringSplitOptions.None).ToList();
 
         tgt.LoadDescriptor(input, true);
+        tgt.Updated = DateTimeOffset.Now.ToString(Task.DATETIME_FORMAT);
 
         ShowSub(tgt);
     }
@@ -489,19 +493,41 @@ public class AISDB
     }
 }
 
+public class EditableProperty : Attribute
+{
+    public EditableProperty() {}
+}
+
 public class Task
 {
+    public static string DATETIME_FORMAT = "yyyy/MM/dd hh:mm";
+
     public int Id { get; set; }
     public string Name { get; set; }
     public string Status { get; set; }
     public string Desc { get; set; }
     public bool IsArchived { get; set; }
-    public string PlDelivSt { get; set; }
-    public string PlDelivEd { get; set; }
-    public string AcDelivSt { get; set; }
-    public string AcDelivEd { get; set; }
-    public double PlWL { get; set; }
-    public double AcWL { get; set; }
+
+    [EditableProperty]
+    public string Priority { get; set; }
+
+    [EditableProperty]
+    public string Delivery { get; set; }
+
+    [EditableProperty]
+    public string PlanSt { get; set; }
+
+    [EditableProperty]
+    public string PlanEd { get; set; }
+
+    [EditableProperty]
+    public string ActualSt { get; set; }
+
+    [EditableProperty]
+    public string ActualEd { get; set; }
+
+    public string Created { get; set; }
+    public string Updated { get; set; }
 
     public static string StatusNameToCode(string name) {
         if(name == ">")
@@ -555,17 +581,30 @@ public class Task
 
     public string GetDescriptor(bool withUsage)
     {
+        string properties =
+             "###" + AIS.NEWLINE
+            + this.GetType()
+                .GetProperties()
+                .Where(p => null != Attribute.GetCustomAttribute(p, typeof(EditableProperty)))
+                .Aggregate("", (m, e) =>
+                    m + String.Format("# @{0} {1}{2}",
+                            AISStringUtil.PascalToKebab(e.Name),
+                            (string)e.GetValue(this),
+                            AIS.NEWLINE))
+            + "###" + AIS.NEWLINE;
+
         string usage = String.Format(
-                "#   Task descriptor format{0}"
-                + "#   #<id> <status> <name>{0}"
-                + "#   {0}"
-                + "#   <description>{0}"
-                + "#   <description>{0}",
+                "###   Task descriptor format{0}"
+                + "###   #<id> <status> <name>{0}"
+                + "###   {0}"
+                + "###   <description>{0}"
+                + "###   <description>{0}",
                 AIS.NEWLINE);
 
         return String.Format(
                 "#{1} {2} {3}{0}"
                 + "{0}"
+                + "{6}"
                 + "{4}{0}"
                 + "{5}",
                 AIS.NEWLINE,
@@ -573,10 +612,11 @@ public class Task
                 Task.StatusCodeToName(Status),
                 Name,
                 Desc,
-                (withUsage)? usage : "");
+                (withUsage)? usage : "",
+                properties);
     }
 
-    public static Task ParseDescriptor(string descriptor, bool trimLast)
+    private static Task ParseDescriptor(string descriptor, bool trimLast)
     {
         Task t = new Task();
 
@@ -606,7 +646,11 @@ public class Task
 
             foreach(string s in tmpLine)
             {
-                if(!(Regex.IsMatch(s, @"[\s]*\#.*$")))
+                if((Regex.IsMatch(s, @"^#.*$")))
+                {
+                    t.ReadIfPropertySetter(s);
+                }
+                else
                 {
                     tmpLine2.Add(s);
                 }
@@ -621,12 +665,41 @@ public class Task
         return t;
     }
 
+    private void ReadIfPropertySetter(string l)
+    {
+        string p = "^\\# @(.+?) (.*)$";
+        if(Regex.IsMatch(l, p))
+        {
+            Match m = new Regex(p,
+                    RegexOptions.IgnoreCase
+                    | RegexOptions.Singleline)
+                .Matches(l)[0];
+            string name = m.Groups[1].Value;
+            string val = (m.Groups.Count > 2)? m.Groups[2].Value.Trim() : null;
+            if(val == null) return;
+
+            var prop = this.GetType()
+                .GetProperty(AISStringUtil.KebabToPascal(name));
+
+            if(null != prop)
+            {
+                prop.SetValue(this, val);
+            }
+        }
+    }
+
     public void LoadDescriptor(string descriptor, bool trimLast)
     {
         Task t = Task.ParseDescriptor(descriptor, trimLast);
         this.Name = t.Name;
         this.Status = t.Status;
         this.Desc = t.Desc;
+
+        this.GetType()
+            .GetProperties()
+            .Where(p => null != Attribute.GetCustomAttribute(p, typeof(EditableProperty)))
+            .ToList()
+            .ForEach(e => e.SetValue(this, (string)e.GetValue(t)));
     }
 
     public static Task SelectById(AISDB db, int id)
@@ -677,6 +750,20 @@ public class AISStringUtil
             .Select(s => char.ToUpperInvariant(s[0])
                     + s.Substring(1, s.Length - 1))
             .Aggregate(string.Empty, (s1, s2) => s1 + s2);
+    }
+
+    public static string PascalToKebab(string pascal)
+    {
+        if (string.IsNullOrEmpty(pascal))
+            return pascal;
+
+        return Regex.Replace(
+            pascal,
+            "(?<!^)([A-Z][a-z]|(?<=[a-z])[A-Z])",
+            "-$1",
+            RegexOptions.Compiled)
+            .Trim()
+            .ToLower();
     }
 }
 
