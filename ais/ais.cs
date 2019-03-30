@@ -129,7 +129,7 @@ public class AISInterface
     public void Del(string[] args) { svc.Del(args); }
     public void Archive(string[] args) { svc.Archive(args); }
     public void Mod(string[] args) { svc.Mod(args); }
-    public void Search(string[] args) { svc.Search(args); }
+    public void Find(string[] args) { svc.Find(args); }
     public void Cls(string[] args) { svc.Cls(args); }
     public void Test(string[] args) { svc.Test(args); }
 }
@@ -372,7 +372,7 @@ public class AISService
         ShowSub(tgt);
     }
 
-    public void Search(string[] args)
+    public void Find(string[] args)
     {
         CheckNumArgumentsEqual(args, 2);
 
