@@ -250,7 +250,7 @@ public class AISService
                     , StringSplitOptions.None);
             foreach(string l in lines)
             {
-                bool isComment = Regex.IsMatch(l, @"[\s]*\;.*$");
+                bool isComment = Regex.IsMatch(l, @"^;.*$");
                 if(!showAll && isComment) continue;
                 Console.WriteLine("  " + ((isComment)? Ansi("32", l) : l));
             }
