@@ -25,7 +25,7 @@ using System.Collections.Generic;
 
 public class AISMain
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
         AIS atmt = new AIS();
         atmt.Initialize();
@@ -38,7 +38,7 @@ public class AISMain
                 string input = Console.ReadLine();
                 if(input == "exit")
                 {
-                    return;
+                    return 0;
                 }
                 atmt.Exec(input.Split(new string[] { " " },
                             StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries));
@@ -46,7 +46,7 @@ public class AISMain
         }
         else
         {
-            atmt.Exec(args);
+            return atmt.Exec(args);
         }
     }
 }
@@ -66,8 +66,10 @@ public class AIS
         ifs = new AISInterface(svc);
     }
 
-    public void Exec(string[] args)
+    public int Exec(string[] args)
     {
+        int result = 0;
+
         svc.LoadOrCreateConfig();
         svc.RestoreOrCreateDB();
 
@@ -80,7 +82,7 @@ public class AIS
             {
                 try
                 {
-                    method.Invoke(ifs, new Object[]{ args });
+                    result = (int)method.Invoke(ifs, new Object[]{ args });
                 }
                 catch(Exception e)
                 {
@@ -99,6 +101,8 @@ public class AIS
         }
 
         svc.DumpDB();
+
+        return result;
     }
 
     public string UppercaseFirst(string s)
@@ -120,19 +124,23 @@ public class AISInterface
         this.svc = svc;
     }
 
-    public void Help(string[] args) { svc.Help(args); }
-    public void List(string[] args) { svc.List(args); }
-    public void Ls(string[] args) { svc.List(args); }
-    public void ListAll(string[] args) { svc.ListAll(args); }
-    public void LsAll(string[] args) { svc.ListAll(args); }
-    public void Show(string[] args) { svc.Show(args); }
-    public void Add(string[] args) { svc.Add(args); }
-    public void Del(string[] args) { svc.Del(args); }
-    public void Archive(string[] args) { svc.Archive(args); }
-    public void Mod(string[] args) { svc.Mod(args); }
-    public void Find(string[] args) { svc.Find(args); }
-    public void Cls(string[] args) { svc.Cls(args); }
-    public void Test(string[] args) { svc.Test(args); }
+    public int Help(string[] args) { svc.Help(args); return 0; }
+    public int List(string[] args) { svc.List(args); return 0; }
+    public int Ls(string[] args) { svc.List(args); return 0; }
+    public int ListAll(string[] args) { svc.ListAll(args); return 0; }
+    public int LsAll(string[] args) { svc.ListAll(args); return 0; }
+    public int Show(string[] args) { svc.Show(args); return 0; }
+    public int Add(string[] args) { svc.Add(args); return 0; }
+    public int Del(string[] args) { svc.Del(args); return 0; }
+    public int Archive(string[] args) { svc.Archive(args); return 0; }
+    public int Mod(string[] args) { svc.Mod(args); return 0; }
+    public int Find(string[] args) { svc.Find(args); return 0; }
+    public int Cls(string[] args) { svc.Cls(args); return 0; }
+    public int Get(string[] args) { svc.Get(args); return 0; }
+    public int Set(string[] args) { svc.Set(args); return 0; }
+    public int New(string[] args) { return svc.New(args); }
+    public int Ins(string[] args) { svc.Ins(args); return 0; }
+    public int Test(string[] args) { svc.Test(args); return 0; }
 }
 
 public class AISService
@@ -329,7 +337,7 @@ public class AISService
             .ForEach(x => ShowSub(x));
     }
 
-    public void Add(string[] args)
+    private Task CreateNew()
     {
         Task t = new Task();
 
@@ -337,6 +345,13 @@ public class AISService
         t.Status = Task.StatusNameToCode("*");
         t.Name = "<name>";
         t.Desc = "# <description>";
+
+        return t;
+    }
+
+    public void Add(string[] args)
+    {
+        Task t = CreateNew();
 
         string input = InputWithVimUTF8(t);
 
@@ -411,7 +426,7 @@ public class AISService
         tgt.LoadDescriptor(input, true);
         tgt.Updated = DateTimeOffset.Now.ToString(Task.DATETIME_FORMAT);
 
-        ShowSub(tgt);
+        // ShowSub(tgt);
     }
 
     public void Find(string[] args)
@@ -429,6 +444,41 @@ public class AISService
     public void Cls(string[] args)
     {
         ClearConsole();
+    }
+
+    public void Get(string[] args)
+    {
+        CheckNumArgumentsEqual(args, 2);
+        Console.Write(Task
+                .SelectById(db, Int32.Parse(args[1]))
+                .GetDescriptor(false));
+    }
+
+    public void Set(string[] args)
+    {
+        CheckNumArgumentsEqual(args, 2);
+        Task.SelectById(db, Int32.Parse(args[1]))
+            .LoadDescriptor(Console.In.ReadToEnd(), true);
+    }
+
+    public int New(string[] args)
+    {
+        Task t = CreateNew();
+        Console.Write(t.GetDescriptor(false));
+        return t.Id;
+    }
+
+    public void Ins(string[] args)
+    {
+        Task t = new Task();
+        t.LoadDescriptor(Console.In.ReadToEnd(), true);
+        t.Id = Int32.Parse(args[1]);
+
+        string dt = DateTimeOffset.Now.ToString(Task.DATETIME_FORMAT);
+        t.Created = dt;
+        t.Updated = dt;
+
+        db.Task.Add(t);
     }
 
     public void LoadOrCreateConfig()
