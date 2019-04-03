@@ -68,6 +68,7 @@ public class AIS
 
     public void Exec(string[] args)
     {
+        svc.LoadOrCreateConfig();
         svc.RestoreOrCreateDB();
 
         if(args.Length > 0)
@@ -137,9 +138,11 @@ public class AISInterface
 public class AISService
 {
     private string defaultDbPath;
+    private string defaultConfigPath;
     string tmpTxtPath;
     string vimrcUtf8FileName;
     private AISDB db;
+    private AISConfig config;
 
     public AISService()
     {
@@ -147,6 +150,7 @@ public class AISService
         defaultDbPath = basePath + @"db.json";
         tmpTxtPath = basePath + @"tmp";
         vimrcUtf8FileName = basePath + @".vimrc_utf8";
+        defaultConfigPath = basePath + @"config.json";
     }
 
     public void Test(string[] args)
@@ -224,12 +228,50 @@ public class AISService
 
     public string Ansi(string sq, string s)
     {
-        return String.Format("\u001b[{0}m{1}\u001b[0m", sq, s);
+        if(config.enableAnsiEsc)
+        {
+            return String.Format("\u001b[{0}m{1}\u001b[0m", sq, s);
+        }
+        else
+        {
+            return s;
+        }
     }
 
-    private string AnsiUnderline(string str)
+    private string AnsiUnderline(string s)
     {
-        return String.Format("\u001b[4m{0}\u001b[0m", str);
+        if(config.enableAnsiEsc)
+        {
+            return String.Format("\u001b[4m{0}\u001b[0m", s);
+        }
+        else
+        {
+            return s;
+        }
+    }
+
+    public string AnsiReset()
+    {
+        if(config.enableAnsiEsc)
+        {
+            return "\u001b[0m";
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+    public string AnsiStrike()
+    {
+        if(config.enableAnsiEsc)
+        {
+            return "\u001b[9m";
+        }
+        else
+        {
+            return "";
+        }
     }
 
     private void ShowSub(Task t, bool showAll = false)
@@ -241,9 +283,9 @@ public class AISService
                 + Ansi("35" + (isWIP ? ";1" : ""), Task.StatusCodeToName(t.Status))
                 + " "
                 + ((t.IsArchived)? "[A] " : "")
-                + ((t.Status == Task.StatusNameToCode("-"))? "\u001b[9m" : "")
+                + ((t.Status == Task.StatusNameToCode("-"))? AnsiStrike() : "")
                 + Ansi("36" + (isWIP ? ";1" : ""), t.Name)
-                + "\u001b[0m");
+                + AnsiReset());
         if(t.Desc != "")
         {
             string[] lines = t.Desc.Split(new string[] { "\r\n" }
@@ -387,6 +429,25 @@ public class AISService
     public void Cls(string[] args)
     {
         ClearConsole();
+    }
+
+    public void LoadOrCreateConfig()
+    {
+        if(!(File.Exists(defaultConfigPath)))
+        {
+            config = new AISConfig();
+
+            // Default config.
+            config.enableAnsiEsc = true;
+
+            File.WriteAllText(defaultConfigPath, AISJsonUtility.Serialize(config),
+                    Encoding.GetEncoding(932));
+        }
+        else
+        {
+            config = AISJsonUtility.Deserialize<AISConfig>(
+                    File.ReadAllText(defaultConfigPath, Encoding.GetEncoding(932)));
+        }
     }
 
     private void CheckNumArgumentsEqual(string[] args, int num)
@@ -693,6 +754,11 @@ public class Sequence
         Seq = Seq + 1;
         return Seq;
     }
+}
+
+public class AISConfig
+{
+    public bool enableAnsiEsc { get; set; }
 }
 
 public class AISJsonUtility
