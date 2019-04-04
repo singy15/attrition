@@ -44,6 +44,11 @@ public class AISMain
                             StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries));
             }
         }
+        else if((args.Count() > 0) && (args[0] == "s"))
+        {
+            atmt.Exec(new string[] { "isel" });
+            return 0;
+        }
         else
         {
             return atmt.Exec(args);
@@ -141,6 +146,7 @@ public class AISInterface
     public int New(string[] args) { return svc.New(args); }
     public int Ins(string[] args) { svc.Ins(args); return 0; }
     public int Wip(string[] args) { svc.Wip(args); return 0; }
+    public int Isel(string[] args) { svc.Isel(args); return 0; }
     public int Test(string[] args) { svc.Test(args); return 0; }
 }
 
@@ -493,6 +499,40 @@ public class AISService
             .Take(cnt)
             .ToList()
             .ForEach(x => ShowSub(x));
+    }
+
+    public void Isel(string[] args)
+    {
+        int i = 0;
+        List<Task> ls = db.Task
+            .Where(x => !(x.IsArchived))
+            .OrderBy(t => t.Status)
+            .ThenByDescending(t => t.Priority)
+            .ThenBy(t => t.Id)
+            .ToList();
+
+        while(true)
+        {
+            ConsoleKeyInfo cki = Console.ReadKey(true);
+            if(cki.Key == ConsoleKey.Enter) break;
+
+            if(cki.KeyChar == 'k')
+            {
+                i -= 1;
+                if(i < 0) i = 0;
+            }
+
+            if(cki.KeyChar == 'j')
+            {
+                i += 1;
+                if(i >= ls.Count()) i = ls.Count() - 1;
+            }
+
+            Console.Clear();
+            Console.WriteLine(String.Format("{0}/{1}", i.ToString(), ls.Count()));
+
+            ShowSub(ls[i]);
+        }
     }
 
     public void LoadOrCreateConfig()
