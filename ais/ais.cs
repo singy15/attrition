@@ -140,6 +140,7 @@ public class AISInterface
     public int Set(string[] args) { svc.Set(args); return 0; }
     public int New(string[] args) { return svc.New(args); }
     public int Ins(string[] args) { svc.Ins(args); return 0; }
+    public int Wip(string[] args) { svc.Wip(args); return 0; }
     public int Test(string[] args) { svc.Test(args); return 0; }
 }
 
@@ -479,6 +480,19 @@ public class AISService
         t.Updated = dt;
 
         db.Task.Add(t);
+    }
+
+    public void Wip(string[] args)
+    {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
+        db.Task
+            .Where(x => !(x.IsArchived) && (x.Status == Task.StatusNameToCode(">")))
+            .OrderBy(t => t.Status)
+            .ThenByDescending(t => t.Priority)
+            .ThenBy(t => t.Id)
+            .Take(cnt)
+            .ToList()
+            .ForEach(x => ShowSub(x));
     }
 
     public void LoadOrCreateConfig()
