@@ -132,14 +132,17 @@ public class AISInterface
     public int Help(string[] args) { svc.Help(args); return 0; }
     public int List(string[] args) { svc.List(args); return 0; }
     public int Ls(string[] args) { svc.List(args); return 0; }
+    public int Title(string[] args) { svc.ListOnlyTitle(args); return 0; }
     public int ListAll(string[] args) { svc.ListAll(args); return 0; }
     public int LsAll(string[] args) { svc.ListAll(args); return 0; }
+    public int TitleAll(string[] args) { svc.ListAllOnlyTitle(args); return 0; }
     public int Show(string[] args) { svc.Show(args); return 0; }
     public int Add(string[] args) { svc.Add(args); return 0; }
     public int Del(string[] args) { svc.Del(args); return 0; }
     public int Archive(string[] args) { svc.Archive(args); return 0; }
     public int Mod(string[] args) { svc.Mod(args); return 0; }
     public int Find(string[] args) { svc.Find(args); return 0; }
+    public int FindTitle(string[] args) { svc.FindOnlyTitle(args); return 0; }
     public int Cls(string[] args) { svc.Cls(args); return 0; }
     public int Get(string[] args) { svc.Get(args); return 0; }
     public int Set(string[] args) { svc.Set(args); return 0; }
@@ -289,7 +292,7 @@ public class AISService
         }
     }
 
-    private void ShowSub(Task t, bool showAll = false)
+    private void ShowSub(Task t, bool showAll = false, bool onlyTitle = false)
     {
         bool isWIP = t.Status == Task.StatusNameToCode(">");
 
@@ -301,7 +304,7 @@ public class AISService
                 + ((t.Status == Task.StatusNameToCode("-"))? AnsiStrike() : "")
                 + Ansi("36" + (isWIP ? ";1" : ""), t.Name)
                 + AnsiReset());
-        if(t.Desc != "")
+        if((t.Desc != "") && (!onlyTitle))
         {
             string[] lines = t.Desc.Split(new string[] { "\r\n" }
                     , StringSplitOptions.None);
@@ -334,6 +337,19 @@ public class AISService
             .ForEach(x => ShowSub(x));
     }
 
+    public void ListOnlyTitle(string[] args)
+    {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
+        db.Task
+            .Where(x => !(x.IsArchived))
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Status)
+            .ThenBy(t => t.Id)
+            .Take(cnt)
+            .ToList()
+            .ForEach(x => ShowSub(x, false, true));
+    }
+
     public void ListAll(string[] args)
     {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
@@ -343,6 +359,17 @@ public class AISService
             .ThenBy(t => t.Id)
             .ToList()
             .ForEach(x => ShowSub(x));
+    }
+
+    public void ListAllOnlyTitle(string[] args)
+    {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
+        db.Task
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Status)
+            .ThenBy(t => t.Id)
+            .ToList()
+            .ForEach(x => ShowSub(x, false, true));
     }
 
     private Task CreateNew()
@@ -450,6 +477,21 @@ public class AISService
             .ThenBy(t => t.Id)
             .ToList()
             .ForEach(x => ShowSub(x));
+    }
+
+    public void FindOnlyTitle(string[] args)
+    {
+        CheckNumArgumentsEqual(args, 2);
+
+        db.Task
+            .Where(x =>
+                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline))
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Status)
+            .ThenBy(t => t.Id)
+            .ToList()
+            .ForEach(x => ShowSub(x, false, true));
     }
 
     public void Cls(string[] args)
