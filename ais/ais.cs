@@ -318,52 +318,50 @@ public class AISService
         ShowSub(Task.SelectById(db, Int32.Parse(args[1])), true);
     }
 
-    public void List(string[] args)
+    public IOrderedEnumerable<Task> Ordering(IEnumerable<Task> list)
     {
-        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        db.Task
-            .Where(x => !(x.IsArchived))
+        return list
             .OrderByDescending(t => t.Priority)
             .ThenBy(t => t.Status)
-            .ThenBy(t => t.Id)
+            .ThenBy(t => t.Id);
+    }
+
+    private void ListSub(string[] args, bool onlyTitle)
+    {
+        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
+        Ordering(db.Task
+            .Where(x => !(x.IsArchived)))
             .Take(cnt)
             .ToList()
-            .ForEach(x => ShowSub(x));
+            .ForEach(x => ShowSub(x, false, onlyTitle));
+    }
+
+    public void List(string[] args)
+    {
+        ListSub(args, false);
     }
 
     public void ListOnlyTitle(string[] args)
     {
+        ListSub(args, true);
+    }
+
+    private void ListAllSub(string[] args, bool onlyTitle)
+    {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        db.Task
-            .Where(x => !(x.IsArchived))
-            .OrderByDescending(t => t.Priority)
-            .ThenBy(t => t.Status)
-            .ThenBy(t => t.Id)
-            .Take(cnt)
+        Ordering(db.Task)
             .ToList()
-            .ForEach(x => ShowSub(x, false, true));
+            .ForEach(x => ShowSub(x, false, onlyTitle));
     }
 
     public void ListAll(string[] args)
     {
-        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        db.Task
-            .OrderByDescending(t => t.Priority)
-            .ThenBy(t => t.Status)
-            .ThenBy(t => t.Id)
-            .ToList()
-            .ForEach(x => ShowSub(x));
+        ListAllSub(args, false);
     }
 
     public void ListAllOnlyTitle(string[] args)
     {
-        int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        db.Task
-            .OrderByDescending(t => t.Priority)
-            .ThenBy(t => t.Status)
-            .ThenBy(t => t.Id)
-            .ToList()
-            .ForEach(x => ShowSub(x, false, true));
+        ListAllSub(args, true);
     }
 
     private Task CreateNew()
@@ -458,34 +456,26 @@ public class AISService
         // ShowSub(tgt);
     }
 
-    public void Find(string[] args)
+    private void FindSub(string[] args, bool onlyTitle)
     {
         CheckNumArgumentsEqual(args, 2);
 
-        db.Task
+        Ordering(db.Task
             .Where(x =>
                 Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*",
-                    RegexOptions.IgnoreCase | RegexOptions.Singleline))
-            .OrderByDescending(t => t.Priority)
-            .ThenBy(t => t.Status)
-            .ThenBy(t => t.Id)
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline)))
             .ToList()
-            .ForEach(x => ShowSub(x));
+            .ForEach(x => ShowSub(x, false, onlyTitle));
+    }
+
+    public void Find(string[] args)
+    {
+        FindSub(args, false);
     }
 
     public void FindOnlyTitle(string[] args)
     {
-        CheckNumArgumentsEqual(args, 2);
-
-        db.Task
-            .Where(x =>
-                Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*",
-                    RegexOptions.IgnoreCase | RegexOptions.Singleline))
-            .OrderByDescending(t => t.Priority)
-            .ThenBy(t => t.Status)
-            .ThenBy(t => t.Id)
-            .ToList()
-            .ForEach(x => ShowSub(x, false, true));
+        FindSub(args, true);
     }
 
     public void Cls(string[] args)
