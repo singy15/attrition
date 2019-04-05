@@ -326,8 +326,8 @@ public class AISService
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
         db.Task
             .Where(x => !(x.IsArchived))
-            .OrderBy(t => t.Status)
-            .ThenByDescending(t => t.Priority)
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Status)
             .ThenBy(t => t.Id)
             .Take(cnt)
             .ToList()
@@ -338,8 +338,9 @@ public class AISService
     {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
         db.Task
-            .OrderBy(t => t.Id)
-            .Take(cnt)
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Status)
+            .ThenBy(t => t.Id)
             .ToList()
             .ForEach(x => ShowSub(x));
     }
@@ -444,6 +445,9 @@ public class AISService
             .Where(x =>
                 Regex.IsMatch(x.GetDescriptor(false), @".*" + args[1] + ".*",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline))
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Status)
+            .ThenBy(t => t.Id)
             .ToList()
             .ForEach(x => ShowSub(x));
     }
