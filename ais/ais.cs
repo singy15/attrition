@@ -402,20 +402,18 @@ public class AISService
         CheckNumArgumentsMin(args, 2);
 
 
-        Console.Write("Delete #" + string.Join(",", args.Skip(1).ToArray()) + ". Are you sure? (Y/n): ");
+        Console.Write("Delete #" + string.Join(",", args.Skip(1).ToArray()) + ". Are you sure? (y/N): ");
         string confirm = Console.ReadLine();
-        if(confirm.ToLower() == "n")
+        if(confirm.ToLower() == "y")
         {
-            return;
-        }
-
-        foreach(string arg in args.Skip(1).ToArray())
-        {
-            Task tgt = Task.SelectById(db, Int32.Parse(arg));
-
-            if(tgt != null)
+            foreach(string arg in args.Skip(1).ToArray())
             {
-                db.Task.Remove(tgt);
+                Task tgt = Task.SelectById(db, Int32.Parse(arg));
+
+                if(tgt != null)
+                {
+                    db.Task.Remove(tgt);
+                }
             }
         }
     }
