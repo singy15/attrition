@@ -145,6 +145,7 @@ public class AISInterface
     public int Ins(string[] args) { svc.Ins(args); return 0; }
     public int Wip(string[] args) { svc.Wip(args); return 0; }
     public int Test(string[] args) { svc.Test(args); return 0; }
+    public int Par(string[] args) { svc.Par(args); return 0; }
 }
 
 public class AISService
@@ -529,6 +530,51 @@ public class AISService
             .ForEach(x => ShowSub(x));
     }
 
+    public void Par(string[] args)
+    {
+        string pId = args[2];
+        string cId = args[1];
+
+        Task c = Task.SelectById(db, Int32.Parse(cId));
+        Task p = Task.SelectById(db, Int32.Parse(pId));
+
+        c.Parent = pId;
+        if(null == p.Children) p.Children = new List<string>();
+
+        if(!(p.Children.Contains(cId)))
+        {
+            p.Children.Add(cId);
+        }
+
+        Console.WriteLine(String.Format("#{0} <- #{1}", p.Id, c.Id));
+
+        LsRoot();
+    }
+
+    private void LsRoot()
+    {
+        db.Task
+            .Where(t => !(t.IsArchived) && ((t.Parent == null) || (t.Parent == "")))
+            .ToList()
+            .ForEach((t) =>
+                    {
+                        ShowSub(t, false, true);
+                    }
+                    );
+    }
+
+    private void LsChildren()
+    {
+        db.Task
+            .Where(t => !(t.IsArchived) && ((t.Parent == null) || (t.Parent == "")))
+            .ToList()
+            .ForEach((t) =>
+                    {
+                        ShowSub(t, false, true);
+                    }
+                    );
+    }
+
     public void LoadOrCreateConfig()
     {
         if(!(File.Exists(defaultConfigPath)))
@@ -663,6 +709,8 @@ public class Task
 
     public string Created { get; set; }
     public string Updated { get; set; }
+    public string Parent { get; set; }
+    public List<string> Children { get; set; }
 
     public static string StatusNameToCode(string name) {
         if(name == ">")
