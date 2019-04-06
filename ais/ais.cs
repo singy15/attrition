@@ -287,7 +287,8 @@ public class AISService
         }
     }
 
-    private void ShowSub(Task t, bool showAll = false, bool onlyTitle = false)
+    private void ShowSub(Task t, bool showAll = false, bool onlyTitle = false,
+            bool noNewline = false, int lv = 0)
     {
         bool isWIP = t.Status == Task.StatusNameToCode(">");
 
@@ -307,10 +308,14 @@ public class AISService
             {
                 bool isComment = Regex.IsMatch(l, @"^;.*$");
                 if(!showAll && isComment) continue;
-                Console.WriteLine("  " + ((isComment)? Ansi("32", l) : l));
+                Console.WriteLine(IndentStr(lv)
+                        + "  " + ((isComment)? Ansi("32", l) : l));
             }
         }
-        Console.WriteLine("");
+        if(!noNewline)
+        {
+           Console.WriteLine(IndentStr(lv));
+        }
     }
 
     public void Show(string[] args)
@@ -327,14 +332,26 @@ public class AISService
             .ThenBy(t => t.Id);
     }
 
+    private void ShowList(List<Task> ls, bool onlyTitle, bool showArchived)
+    {
+        for(int i = 0; i < ls.Count(); i++)
+        {
+            Task t = ls[i];
+            ShowSub(t, false, onlyTitle, true, 0);
+            WriteNewLine(1, GetOrderedChildren(t, showArchived));
+            LsChildren(t, 1, showArchived, onlyTitle, 0);
+        }
+    }
+
     private void ListSub(string[] args, bool onlyTitle)
     {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        Ordering(db.Task
-            .Where(x => !(x.IsArchived)))
+        List<Task> ls = Ordering(db.Task
+                .Where(t => !(t.IsArchived) && ((t.Parent == null) || (t.Parent == ""))))
             .Take(cnt)
-            .ToList()
-            .ForEach(x => ShowSub(x, false, onlyTitle));
+            .ToList();
+
+        ShowList(ls, onlyTitle, false);
     }
 
     public void List(string[] args)
@@ -350,9 +367,11 @@ public class AISService
     private void ListAllSub(string[] args, bool onlyTitle)
     {
         int cnt = (args.Count() == 2)? Int32.Parse(args[1]) : 50;
-        Ordering(db.Task)
-            .ToList()
-            .ForEach(x => ShowSub(x, false, onlyTitle));
+        List<Task> ls = Ordering(db.Task
+                .Where(t => (t.Parent == null) || (t.Parent == "")))
+            .ToList();
+
+        ShowList(ls, onlyTitle, true);
     }
 
     public void ListAll(string[] args)
@@ -402,7 +421,6 @@ public class AISService
     {
         CheckNumArgumentsMin(args, 2);
 
-
         Console.Write("Delete #" + string.Join(",", args.Skip(1).ToArray()) + ". Are you sure? (y/N): ");
         string confirm = Console.ReadLine();
         if(confirm.ToLower() == "y")
@@ -413,6 +431,16 @@ public class AISService
 
                 if(tgt != null)
                 {
+                    if((tgt.Children != null) && (tgt.Children.Count() > 0))
+                    {
+                        Console.WriteLine(String.Format(
+                                    "Can't delete #{0}. "
+                                    + "cascade delete is not implemented yet.",
+                                    tgt.Id.ToString()));
+                        continue;
+                    }
+
+                    UnlinkPar(tgt);
                     db.Task.Remove(tgt);
                 }
             }
@@ -530,49 +558,127 @@ public class AISService
             .ForEach(x => ShowSub(x));
     }
 
-    public void Par(string[] args)
+    private void UnlinkPar(Task c)
     {
-        string pId = args[2];
-        string cId = args[1];
+        if((c.Parent == null) || (c.Parent == "")) return;
 
-        Task c = Task.SelectById(db, Int32.Parse(cId));
-        Task p = Task.SelectById(db, Int32.Parse(pId));
-
-        c.Parent = pId;
-        if(null == p.Children) p.Children = new List<string>();
-
-        if(!(p.Children.Contains(cId)))
+        Task p = Task.SelectById(db, Int32.Parse(c.Parent));
+        if(p.Children.Contains(c.Id.ToString()))
         {
-            p.Children.Add(cId);
+            p.Children.RemoveAt(p.Children.IndexOf(c.Id.ToString()));
         }
 
-        Console.WriteLine(String.Format("#{0} <- #{1}", p.Id, c.Id));
-
-        LsRoot();
+        c.Parent = null;
     }
 
-    private void LsRoot()
+    public void Par(string[] args)
     {
-        db.Task
-            .Where(t => !(t.IsArchived) && ((t.Parent == null) || (t.Parent == "")))
-            .ToList()
-            .ForEach((t) =>
-                    {
-                        ShowSub(t, false, true);
-                    }
-                    );
+        string cId = args[1];
+        Task c = Task.SelectById(db, Int32.Parse(cId));
+
+        UnlinkPar(c);
+
+        if(args.Count() >= 3)
+        {
+            string pId = args[2];
+            Task p = Task.SelectById(db, Int32.Parse(pId));
+
+            c.Parent = pId;
+            if(null == p.Children) p.Children = new List<string>();
+
+            if(!(p.Children.Contains(cId)))
+            {
+                p.Children.Add(cId);
+            }
+
+            Console.WriteLine(String.Format("#{0}{2}  | #{1}", p.Id, c.Id, AIS.NEWLINE));
+        }
     }
 
-    private void LsChildren()
+    private string IndentStr(int l, bool start = false)
     {
-        db.Task
-            .Where(t => !(t.IsArchived) && ((t.Parent == null) || (t.Parent == "")))
-            .ToList()
-            .ForEach((t) =>
-                    {
-                        ShowSub(t, false, true);
-                    }
-                    );
+        string m = "";
+        for(int i = 0; i < l; i++)
+        {
+            // ALTERNATIVE1 :
+            // m += (start && (i == l - 1))? "  /----" : "  | ";
+
+            // ALTERNATIVE2 :
+            // m += (start && (i == l - 1))? "  T" : "  | ";
+            m += "  | ";
+        }
+        return m;
+    }
+
+    private void WriteNewLine(int l, List<Task> children)
+    {
+        if((children != null) && (children.Count() > 0))
+        {
+            // ALTERNATIVE1 :
+            // Console.WriteLine(IndentStr(l - 1));
+            Console.WriteLine(IndentStr(l, true));
+        }
+        else
+        {
+            Console.WriteLine(IndentStr(l - 1));
+        }
+    }
+
+    private List<Task> GetOrderedChildren(Task t, bool showArchived)
+    {
+        List<Task> ls = new List<Task>();
+        if(null == t.Children) return ls;
+
+        for(int i = 0; i < t.Children.Count(); i++)
+        {
+            string s = t.Children[i];
+            Task c = Task.SelectById(db, Int32.Parse(s));
+            if(null != c)
+            {
+                ls.Add(c);
+            }
+        }
+
+        return Ordering(ls
+                .Where(x =>
+                    ((showArchived)? true : !(x.IsArchived))))
+            .ToList();
+    }
+
+    private void LsChildren(Task t, int l, bool showArchived, bool onlyTitle, int lastReturn)
+    {
+        if(t.Children == null) return;
+
+        List<Task> ls = GetOrderedChildren(t, showArchived);
+
+        for(int i = 0; i < ls.Count(); i++)
+        {
+            Task c = ls[i];
+            Console.Write(IndentStr(l));
+            ShowSub(c, false, onlyTitle, true, l);
+
+            List<Task> cls = GetOrderedChildren(c, showArchived);
+
+            if(i != (ls.Count() - 1)) {
+                // has next
+                // ALTERNATIVE1 :
+                // WriteNewLine(l + 1, cls);
+                WriteNewLine(l + 1, cls);
+            }
+            else if(cls.Count() > 0)
+            {
+                // last but has children
+                WriteNewLine(l + 1, cls);
+            }
+            else
+            {
+                // last
+                Console.WriteLine(IndentStr(l - lastReturn - 1));
+            }
+
+            LsChildren(c, l + 1, showArchived, onlyTitle,
+                    lastReturn + ((i == (ls.Count() - 1))? 1 : 0));
+        }
     }
 
     public void LoadOrCreateConfig()
