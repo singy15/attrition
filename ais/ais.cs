@@ -302,10 +302,25 @@ public class AISService
                 + AnsiReset());
         if((t.Desc != "") && (!onlyTitle))
         {
+            bool blockHidden = false;
             string[] lines = t.Desc.Split(new string[] { "\r\n" }
                     , StringSplitOptions.None);
             foreach(string l in lines)
             {
+                if(l.Trim() == ";>")
+                {
+                    blockHidden = true;
+                    continue;
+                }
+
+                if(l.Trim() == ";<")
+                {
+                    blockHidden = false;
+                    continue;
+                }
+
+                if(blockHidden) continue;
+
                 bool isComment = Regex.IsMatch(l, @"^;.*$");
                 if(!showAll && isComment) continue;
                 Console.WriteLine(IndentStr(lv)
