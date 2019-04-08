@@ -42,7 +42,7 @@ syntax match aisHidden /^;.*/
 syntax match aisId "\%^#[1234567890]*" nextgroup=aisStatus skipwhite
 syntax match aisStatus / . / contained nextgroup=aisTitle skipwhite
 syntax match aisTitle /.*/ contained
-syntax region aisBlockHidden start=";>" end=";<"
+syntax region aisBlockHidden start="^;>" end="^;<"
 
 highlight aisComment ctermfg=5
 highlight aisHidden ctermfg=2
