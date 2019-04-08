@@ -639,7 +639,7 @@ public class AISService
 
             if((i == (l-1)) && folded)
             {
-                m += "  + ";
+                m += "  " + Ansi("47;30", "+++");
             }
             else
             {
