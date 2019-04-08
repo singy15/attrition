@@ -146,6 +146,7 @@ public class AISInterface
     public int Wip(string[] args) { svc.Wip(args); return 0; }
     public int Test(string[] args) { svc.Test(args); return 0; }
     public int Par(string[] args) { svc.Par(args); return 0; }
+    public int Fold(string[] args) { svc.Fold(args); return 0; }
 }
 
 public class AISService
@@ -353,8 +354,17 @@ public class AISService
         {
             Task t = ls[i];
             ShowSub(t, false, onlyTitle, true, 0);
-            WriteNewLine(1, GetOrderedChildren(t, showArchived));
-            LsChildren(t, 1, showArchived, onlyTitle, 0);
+
+            if(!t.Folded)
+            {
+                WriteNewLine(1, GetOrderedChildren(t, showArchived));
+                LsChildren(t, 1, showArchived, onlyTitle, 0);
+            }
+            else
+            {
+                WriteNewLine(1, GetOrderedChildren(t, showArchived), true);
+                Console.WriteLine("");
+            }
         }
     }
 
@@ -610,7 +620,13 @@ public class AISService
         }
     }
 
-    private string IndentStr(int l, bool start = false)
+    public void Fold(string[] args)
+    {
+        Task t = Task.SelectById(db, Int32.Parse(args[1]));
+        t.Folded = !t.Folded;
+    }
+
+    private string IndentStr(int l, bool start = false, bool folded = false)
     {
         string m = "";
         for(int i = 0; i < l; i++)
@@ -620,22 +636,30 @@ public class AISService
 
             // ALTERNATIVE2 :
             // m += (start && (i == l - 1))? "  T" : "  | ";
-            m += "  | ";
+
+            if((i == (l-1)) && folded)
+            {
+                m += "  + ";
+            }
+            else
+            {
+                m += "  | ";
+            }
         }
         return m;
     }
 
-    private void WriteNewLine(int l, List<Task> children)
+    private void WriteNewLine(int l, List<Task> children, bool folded = false)
     {
         if((children != null) && (children.Count() > 0))
         {
             // ALTERNATIVE1 :
             // Console.WriteLine(IndentStr(l - 1));
-            Console.WriteLine(IndentStr(l, true));
+            Console.WriteLine(IndentStr(l, true, folded));
         }
         else
         {
-            Console.WriteLine(IndentStr(l - 1));
+            Console.WriteLine(IndentStr(l - 1, false, folded));
         }
     }
 
@@ -663,6 +687,7 @@ public class AISService
     private void LsChildren(Task t, int l, bool showArchived, bool onlyTitle, int lastReturn)
     {
         if(t.Children == null) return;
+        if(t.Folded) return;
 
         List<Task> ls = GetOrderedChildren(t, showArchived);
 
@@ -678,12 +703,28 @@ public class AISService
                 // has next
                 // ALTERNATIVE1 :
                 // WriteNewLine(l + 1, cls);
-                WriteNewLine(l + 1, cls);
+                if(!c.Folded)
+                {
+                    WriteNewLine(l + 1, cls);
+                }
+                else
+                {
+                    WriteNewLine(l + 1, cls, true);
+                    WriteNewLine(l, cls);
+                }
             }
             else if(cls.Count() > 0)
             {
                 // last but has children
-                WriteNewLine(l + 1, cls);
+                if(!c.Folded)
+                {
+                    WriteNewLine(l + 1, cls);
+                }
+                else
+                {
+                    WriteNewLine(l + 1, cls, true);
+                    WriteNewLine(l, cls);
+                }
             }
             else
             {
@@ -832,6 +873,7 @@ public class Task
     public string Updated { get; set; }
     public string Parent { get; set; }
     public List<string> Children { get; set; }
+    public bool Folded { get; set; }
 
     public static string StatusNameToCode(string name) {
         if(name == ">")
