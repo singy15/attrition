@@ -319,12 +319,12 @@ public class AISService
                     continue;
                 }
 
-                if(blockHidden) continue;
+                if(!showAll && blockHidden) continue;
 
                 bool isComment = Regex.IsMatch(l, @"^;.*$");
                 if(!showAll && isComment) continue;
                 Console.WriteLine(IndentStr(lv)
-                        + "  " + ((isComment)? Ansi("32", l) : l));
+                        + "  " + ((isComment || blockHidden)? Ansi("32", l) : l));
             }
         }
         if(!noNewline)
