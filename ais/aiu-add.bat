@@ -1,6 +1,6 @@
 setlocal
 
-ais new > tmp
+ais new %* > tmp
 set ID=%ERRORLEVEL%
 vim --not-a-term -u .vimrc_utf8 tmp
 if %ERRORLEVEL% == 0 (

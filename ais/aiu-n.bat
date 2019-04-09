@@ -1,6 +1,6 @@
 setlocal
 
-call aiu-add
+call aiu-add %*
 
 endlocal
 exit /b

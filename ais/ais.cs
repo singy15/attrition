@@ -409,7 +409,7 @@ public class AISService
         ListAllSub(args, true);
     }
 
-    private Task CreateNew()
+    private Task CreateNew(Task s)
     {
         Task t = new Task();
 
@@ -418,12 +418,19 @@ public class AISService
         t.Name = "<name>";
         t.Desc = "# <description>";
 
+        if(null != s)
+        {
+            t.Status = s.Status;
+            t.Name = s.Name;
+            t.Desc = s.Desc;
+        }
+
         return t;
     }
 
     public void Add(string[] args)
     {
-        Task t = CreateNew();
+        Task t = CreateNew(null);
 
         string input = InputWithVimUTF8(t);
 
@@ -552,7 +559,13 @@ public class AISService
 
     public int New(string[] args)
     {
-        Task t = CreateNew();
+        Task s = null;
+        if(args.Count() >= 2)
+        {
+            s = Task.SelectById(db, Int32.Parse(args[1]));
+        }
+
+        Task t = CreateNew(s);
         Console.Write(t.GetDescriptor(false));
         return t.Id;
     }
