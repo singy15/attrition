@@ -151,7 +151,6 @@ public class AISInterface
 
 public class AISService
 {
-    private string defaultDbPath;
     private string defaultConfigPath;
     string tmpTxtPath;
     string vimrcUtf8FileName;
@@ -161,7 +160,6 @@ public class AISService
     public AISService()
     {
         string basePath = System.AppDomain.CurrentDomain.BaseDirectory;
-        defaultDbPath = basePath + @"db.json";
         tmpTxtPath = basePath + @"tmp";
         vimrcUtf8FileName = basePath + @".vimrc_utf8";
         defaultConfigPath = basePath + @"config.json";
@@ -179,19 +177,19 @@ public class AISService
 
     public void DumpDB()
     {
-        File.WriteAllText(defaultDbPath, AISJsonUtility.Serialize(db),
+        File.WriteAllText(config.pathDb, AISJsonUtility.Serialize(db),
                 Encoding.GetEncoding(932));
     }
 
     public void RestoreDB()
     {
         db = AISJsonUtility.Deserialize<AISDB>(
-                File.ReadAllText(defaultDbPath, Encoding.GetEncoding(932)));
+                File.ReadAllText(config.pathDb, Encoding.GetEncoding(932)));
     }
 
     public void RestoreOrCreateDB()
     {
-        if(!(File.Exists(defaultDbPath)))
+        if(!(File.Exists(config.pathDb)))
         {
             CreateDB();
         }
@@ -758,6 +756,8 @@ public class AISService
 
             // Default config.
             config.enableAnsiEsc = true;
+            string basePath = System.AppDomain.CurrentDomain.BaseDirectory;
+            config.pathDb = basePath + @"db.json";
 
             File.WriteAllText(defaultConfigPath, AISJsonUtility.Serialize(config),
                     Encoding.GetEncoding(932));
@@ -767,6 +767,11 @@ public class AISService
             config = AISJsonUtility.Deserialize<AISConfig>(
                     File.ReadAllText(defaultConfigPath, Encoding.GetEncoding(932)));
         }
+    }
+
+    public bool IsPathDbConfigured()
+    {
+        return !((config.pathDb == "") || (config.pathDb == null));
     }
 
     private void CheckNumArgumentsEqual(string[] args, int num)
@@ -1081,6 +1086,7 @@ public class Sequence
 public class AISConfig
 {
     public bool enableAnsiEsc { get; set; }
+    public string pathDb { get; set; }
 }
 
 public class AISJsonUtility

@@ -1,12 +1,13 @@
 setlocal
 
-ais new %* > tmp
+set BASEPATH=%~dp0
+ais new %* > %BASEPATH%tmp
 set ID=%ERRORLEVEL%
-vim --not-a-term -u .vimrc_utf8 tmp
+vim --not-a-term -u %BASEPATH%.vimrc_utf8 %BASEPATH%tmp
 if %ERRORLEVEL% == 0 (
-    type tmp | ais ins %ID%
-    ais show %ID% > tmp
-    type tmp | less -R -F -X
+    type %BASEPATH%tmp | ais ins %ID%
+    ais show %ID% > %BASEPATH%tmp
+    type %BASEPATH%tmp | less -R -F -X
 )
 
 endlocal

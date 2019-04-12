@@ -1,7 +1,8 @@
 setlocal
 
-ais show %1 > tmp
-type tmp
+set BASEPATH=%~dp0
+ais show %1 > %BASEPATH%tmp
+type %BASEPATH%tmp
 
 endlocal
 exit /b
